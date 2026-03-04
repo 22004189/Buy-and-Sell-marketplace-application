@@ -1,0 +1,203 @@
+html,
+body {
+    height: 100%;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+h1,
+h2,
+h3 {
+    color: #2c3e50;
+}
+
+.form-container,
+#welcome-section {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    width: 100%;
+    min-height: calc(100vh - 40px);
+    margin: 0;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="date"],
+input[type="url"],
+select,
+textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0 20px;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+button {
+    width: 100%;
+    background-color: #007bff;
+    color: white;
+    padding: 14px 20px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.link {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.link:hover {
+    text-decoration: underline;
+}
+
+#map {
+    height: 250px;
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#error-msg {
+    color: #dc3545;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* Themed buttons */
+.btn-google {
+    background: linear-gradient(90deg, #db4437, #c2332a);
+    border: none;
+    color: #fff;
+}
+
+.btn-success {
+    background: linear-gradient(90deg, #28a745, #1f8a36);
+    border: none;
+    color: #fff;
+}
+
+.btn-track {
+    background: linear-gradient(90deg, #ffc107, #e0a800);
+    border: none;
+    color: #222;
+}
+
+.btn-logout {
+    background: linear-gradient(90deg, #6c757d, #565e64);
+    border: none;
+    color: #fff;
+}
+
+.btn-primary {
+    background: linear-gradient(90deg, #007bff, #0069d9);
+    border: none;
+    color: #fff;
+}
+
+.item-card {
+    background: linear-gradient(180deg, #fff, #f7fbff);
+    border: 1px solid #e6eef8;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(18, 52, 86, 0.06);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.item-card img {
+    max-width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.item-price {
+    color: #17a2b8;
+    font-weight: 700;
+}
+
+/* small utilities */
+.row {
+    display: flex;
+    gap: 12px;
+}
+
+.col {
+    flex: 1;
+}
+
+/* ensure leaflet map has subtle border */
+#map {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Navigation Tabs */
+.nav-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.btn-nav {
+    background: none;
+    color: #666;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 4px;
+    width: auto;
+    margin: 0;
+}
+
+.btn-nav.active {
+    background-color: #e6f0ff;
+    color: #007bff;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}

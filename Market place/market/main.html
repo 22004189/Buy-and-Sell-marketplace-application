@@ -1,0 +1,3809 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy & Sell - App</title>
+    <link rel="stylesheet" href="deco.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <style>
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            padding: 25px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            position: relative;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 15px;
+            top: 10px;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .item-summary {
+            text-align: left;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .item-summary img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .success-icon {
+            color: #28a745;
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+
+        /* Chat Styles */
+        .chat-header {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .chat-header .close-modal {
+            color: white;
+            opacity: 0.8;
+        }
+
+        .chat-header .close-modal:hover {
+            opacity: 1;
+        }
+
+        #chat-history {
+            background-color: #e5ddd5;
+        }
+
+        .msg-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 10px;
+        }
+
+        .msg-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+            margin-bottom: 8px;
+        }
+
+        .msg-row.mine {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-row.other {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .msg-bubble {
+            padding: 6px 10px;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            line-height: 19px;
+            color: #111;
+            word-wrap: break-word;
+            min-width: 80px;
+        }
+
+        .msg-row.mine .msg-bubble {
+            background: #007bff;
+            color: white;
+            border-top-right-radius: 0;
+        }
+
+        .msg-row.other .msg-bubble {
+            background: #fff;
+            border-top-left-radius: 0;
+        }
+
+        .msg-meta {
+            font-size: 10px;
+            color: rgba(0, 0, 0, 0.45);
+            text-align: right;
+            margin-top: 2px;
+            display: block;
+        }
+
+        .msg-row.mine .msg-meta {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .msg-status {
+            font-size: 10px;
+            margin-left: 4px;
+        }
+
+        .msg-sender-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #e542a3;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .msg-row.mine .msg-sender-name {
+            display: none;
+        }
+
+        .typing-indicator {
+            font-size: 12px;
+            color: #007bff;
+            padding: 5px 15px;
+            font-style: italic;
+            display: none;
+            background: #f0f0f0;
+        }
+
+        .typing-indicator.show {
+            display: block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
+        }
+
+        .badge-count {
+            background: #dc3545;
+            color: white;
+            font-size: 0.75em;
+            padding: 2px 6px;
+            border-radius: 10px;
+            position: absolute;
+            top: -8px;
+            right: -5px;
+            border: 1px solid white;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Inbox List Styles */
+        .chat-list-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+            background: white;
+        }
+
+        .chat-list-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .chat-list-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+
+        .chat-list-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-list-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .chat-list-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .chat-list-time {
+            font-size: 0.8em;
+            color: #888;
+            white-space: nowrap;
+            margin-left: 10px;
+        }
+
+        .chat-list-preview {
+            color: #666;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-list-item.unread {
+            background-color: #e6f2ff;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Authentication moved to index.html; dashboard shows only welcome-section -->
+
+    <!-- Welcome Section (Hidden until logged in) -->
+    <div id="welcome-section" class="hidden">
+        <div id="dashboard-header">
+            <h1>Dashboard</h1>
+            <p>You are successfully logged in as: <strong id="user-email-display"></strong></p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-bar">
+            <button id="nav-browse" class="btn-nav active">Browse Items</button>
+            <button id="nav-sell" class="btn-nav">Sell my Items</button>
+            <button id="nav-chats" class="btn-nav">Chats</button>
+            <button id="nav-profile" class="btn-nav">Profile</button>
+            <button id="logoutBtn" class="btn-nav" style="margin-left:auto; color:red;">Logout</button>
+        </div>
+
+        <hr>
+
+        <!-- 1. BROWSE SECTION -->
+        <div id="section-browse">
+            <h3>Explore Items</h3>
+            <div id="marketplace-grid" class="grid-container">
+                <p>Loading items...</p>
+            </div>
+        </div>
+
+        <!-- 2. PROFILE SECTION -->
+        <div id="section-profile" class="hidden">
+            <h3>Profile Settings</h3>
+            <form id="profileForm" data-custom-handle style="margin-top: 20px;">
+                <input type="text" id="reg-username" placeholder="Username (unique)">
+                <input type="text" id="reg-name" placeholder="Full Name">
+                <label>Profile photo</label>
+                <input type="file" id="reg-photo" accept="image/*">
+                <img id="photoPreview" src="" alt="Preview" class="hidden">
+                <input type="tel" id="reg-phone" placeholder="Phone number" />
+                <label for="reg-dob">Date of Birth</label>
+                <input type="date" id="reg-dob" required>
+                <div id="dobError" style="color:#dc3545; font-size:0.9em; margin-top:6px"></div>
+                <label for="reg-usertype">I am a</label>
+                <select id="reg-usertype">
+                    <option value="buyer">Buyer</option>
+                    <option value="seller">Seller</option>
+                </select>
+                <textarea id="reg-bio" placeholder="Short bio / about you"></textarea>
+                <label>Interests (choose one or more)</label>
+                <div id="interests-group">
+                    <label><input type="checkbox" name="reg-interests" value="Electronics"> Electronics</label>
+                    <label><input type="checkbox" name="reg-interests" value="Books"> Books</label>
+                    <label><input type="checkbox" name="reg-interests" value="Clothing"> Clothing</label>
+                    <label><input type="checkbox" name="reg-interests" value="Home"> Home</label>
+                    <label><input type="checkbox" name="reg-interests" value="Sports"> Sports</label>
+                    <label><input type="checkbox" name="reg-interests" value="Vehicles"> Vehicles</label>
+                    <label><input type="checkbox" name="reg-interests" value="Other"> Other</label>
+                </div>
+                <input type="url" id="reg-social" placeholder="Website or social link (optional)">
+                <div>
+                    <label><input type="checkbox" id="notify-email" checked> Email notifications</label>
+                    <label><input type="checkbox" id="notify-sms"> SMS notifications</label>
+                </div>
+                <label for="reg-location">Location (pick on map or use current location)</label>
+                <input type="text" id="reg-location" placeholder="Type address or pick on map" />
+                <div id="map"></div>
+                <button type="button" id="useLocationBtn" class="btn-success">Use current location</button>
+                <input type="hidden" id="reg-lat">
+                <input type="hidden" id="reg-lng">
+                <button type="submit" class="btn-primary" style="margin-top:15px">Save Profile</button>
+            </form>
+        </div>
+
+        <!-- 3. SELL / MY ITEMS SECTION -->
+        <div id="section-sell" class="hidden">
+            <h3>Upload a Product</h3>
+            <form id="sellForm" data-custom-handle
+                style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:20px;">
+                <input type="text" id="prod-title" placeholder="Product Title" required>
+                <input type="number" id="prod-price" placeholder="Price (R)" required>
+                <textarea id="prod-desc" placeholder="Description"></textarea>
+                <label>Product Image</label>
+                <input type="file" id="prod-image" accept="image/*" required>
+                <button type="submit" class="btn-success">Post Item</button>
+            </form>
+
+            <h3>My Listings & Sales</h3>
+            <p>Track your items and see who purchased them.</p>
+            <div id="my-items-grid" class="grid-container">
+                <!-- My items go here -->
+            </div>
+
+            <h3 style="margin-top:30px; border-top:1px solid #eee; padding-top:20px;">My Purchases</h3>
+            <p>Items you have bought. Use the chat to arrange delivery.</p>
+            <div id="my-purchases-grid" class="grid-container"></div>
+        </div>
+
+        <!-- 4. CHATS SECTION -->
+        <div id="section-chats" class="hidden">
+            <div id="chats-list" style="border-top: 1px solid #eee;"></div>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div id="buyModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeModal">&times;</span>
+
+            <!-- Step 1: Confirm -->
+            <div id="modal-step-1">
+                <h2 style="margin-top:0">Confirm Purchase</h2>
+                <div id="buy-item-summary" class="item-summary">
+                    <!-- Populated by JS -->
+                </div>
+                <div style="display:flex; justify-content:space-between; margin: 15px 0; font-size:1.1em;">
+                    <span>Total Amount:</span>
+                    <strong id="buy-total-price"></strong>
+                </div>
+                <div
+                    style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 4px; font-size: 0.85em; text-align: left; margin-bottom: 15px;">
+                    <strong>Payment Notice:</strong><br>
+                    Payments are handled directly between the buyer and the seller. The platform does not process or
+                    store payment information. Buyers and sellers are encouraged to agree on a safe and convenient
+                    payment method such as cash on collection or bank transfer.
+                </div>
+                <button id="confirmPurchaseBtn" class="btn-success"
+                    style="width:100%; padding:12px; font-size:1.1em;">Pay Now</button>
+            </div>
+
+            <!-- Step 2: Loading -->
+            <div id="modal-step-loading" class="hidden">
+                <h3>Processing Payment...</h3>
+                <div class="spinner"></div>
+                <p>Please wait while we secure your item.</p>
+            </div>
+
+            <!-- Step 3: Success -->
+            <div id="modal-step-success" class="hidden">
+                <div class="success-icon">✔</div>
+                <h3>Purchase Successful!</h3>
+                <p>You are now the owner of this item.</p>
+                <button id="closeSuccessBtn" class="btn-primary" style="width:100%; margin-top:15px;">Awesome!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div id="chatModal" class="modal">
+        <div class="modal-content"
+            style="max-width: 500px; height: 80vh; display: flex; flex-direction: column; padding: 0;">
+            <div class="chat-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div
+                        style="width:35px; height:35px; background:#ccc; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold; font-size:18px;">
+                        👤</div>
+                    <h3 id="chat-title">Chat</h3>
+                </div>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <button id="clearChatBtn"
+                        style="background:transparent; border:1px solid rgba(255,255,255,0.7); color:white; border-radius:4px; cursor:pointer; font-size:0.8em; padding:4px 8px;">Clear
+                        Chat</button>
+                    <span class="close-modal" id="closeChatModal" style="position:static; float:none;">&times;</span>
+                </div>
+            </div>
+            <div id="chat-history" style="flex:1; overflow-y:auto; padding:0;"></div>
+            <div id="typing-indicator" class="typing-indicator"></div>
+            <form id="chatForm"
+                style="padding:10px; background:#f0f0f0; display:flex; gap:10px; align-items:center; border-radius: 0 0 12px 12px;">
+                <input type="text" id="chat-input" placeholder="Type a message"
+                    style="flex:1; padding:12px; border:none; border-radius:25px; outline:none;" required>
+                <button type="submit"
+                    style="background:#007bff; color:white; border:none; width:45px; height:45px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px;">➤</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import {
+            auth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            provider,
+            signInWithPopup,
+            saveUserProfile,
+            db,
+            doc,
+            getDoc,
+            uploadProfilePhoto,
+            uploadProductImage,
+            collection,
+            addDoc,
+            getDocs,
+            query, where, orderBy, updateDoc,
+            deleteDoc,
+            EmailAuthProvider,
+            linkWithCredential,
+            serverTimestamp,
+            sendPasswordResetEmail
+        } from './firebaseauth.js';
+
+        // UI Elements
+        const authSection = document.getElementById('auth-section');
+        const welcomeSection = document.getElementById('welcome-section');
+        const registerBox = document.getElementById('register-box');
+        const loginBox = document.getElementById('login-box');
+        const forgotBox = document.getElementById('forgot-box');
+        const errorMsg = document.getElementById('error-msg');
+
+        // Attach auth UI handlers only when those elements exist (auth moved to index.html)
+        const showLoginEl = document.getElementById('showLogin');
+        if (showLoginEl && registerBox && loginBox && errorMsg) showLoginEl.onclick = () => {
+            registerBox.classList.add('hidden');
+            loginBox.classList.remove('hidden');
+            errorMsg.textContent = '';
+            try { clearAuthForms(); } catch (e) { }
+        };
+        const showRegisterEl = document.getElementById('showRegister');
+        if (showRegisterEl && registerBox && loginBox && errorMsg) showRegisterEl.onclick = () => {
+            loginBox.classList.add('hidden');
+            registerBox.classList.remove('hidden');
+            errorMsg.textContent = '';
+            try { clearAuthForms(); } catch (e) { }
+        };
+        const showForgotEl = document.getElementById('showForgot');
+        if (showForgotEl && loginBox && forgotBox && errorMsg) showForgotEl.onclick = () => {
+            loginBox.classList.add('hidden');
+            forgotBox.classList.remove('hidden');
+            errorMsg.textContent = '';
+        };
+        const cancelForgotEl = document.getElementById('cancelForgot');
+        if (cancelForgotEl && loginBox && forgotBox && errorMsg) cancelForgotEl.onclick = () => {
+            forgotBox.classList.add('hidden');
+            loginBox.classList.remove('hidden');
+            errorMsg.textContent = '';
+        };
+
+        // Dynamic Date Restriction + 18+ validation
+        const dobInput = document.getElementById('reg-dob');
+        const dobError = document.getElementById('dobError');
+
+        function setDobRestriction() {
+            const today = new Date();
+            const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+            dobInput.max = maxDate.toISOString().split('T')[0];
+        }
+
+        function validateDob() {
+            if (!dobInput) return true;
+            dobError.textContent = '';
+            if (!dobInput.value) {
+                dobError.textContent = 'Date of birth is required.';
+                return false;
+            }
+            const dobDate = new Date(dobInput.value);
+            const today = new Date();
+            let age = today.getFullYear() - dobDate.getFullYear();
+            const m = today.getMonth() - dobDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+                age--;
+            }
+            if (age < 18) {
+                dobError.textContent = 'You must be at least 18 years old.';
+                return false;
+            }
+            return true;
+        }
+
+        if (dobInput) {
+            setDobRestriction();
+            dobInput.addEventListener('change', () => validateDob());
+        }
+
+        // Map helpers (kept for location)
+        let map, marker;
+        function initMap() {
+            if (map) return;
+            try {
+                map = L.map('map').setView([0, 0], 2);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+                map.on('click', async (e) => {
+                    const { lat, lng } = e.latlng;
+                    placeMarker(lat, lng);
+                    const address = await reverseGeocode(lat, lng);
+                    document.getElementById('reg-location').value = address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    document.getElementById('reg-lat').value = lat;
+                    document.getElementById('reg-lng').value = lng;
+                });
+            } catch (e) { console.warn('Leaflet init failed', e); }
+        }
+        function placeMarker(lat, lng) {
+            if (marker) marker.setLatLng([lat, lng]);
+            else marker = L.marker([lat, lng]).addTo(map);
+            map.setView([lat, lng], 14);
+        }
+        async function reverseGeocode(lat, lng) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return '';
+                const data = await res.json();
+                return data.display_name || '';
+            } catch (e) { console.warn('Reverse geocode failed', e); return ''; }
+        }
+        async function forwardGeocode(address) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(address)}`;
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return null;
+                const data = await res.json();
+                return data.length > 0 ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : null;
+            } catch (e) { console.warn('Forward geocode failed', e); return null; }
+        }
+        function useCurrentLocation() {
+            if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+            errorMsg.textContent = 'Getting your location...'; // Give feedback
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const accuracy = pos.coords.accuracy; // Get the accuracy in meters
+
+                if (accuracy > 1000) { // If accuracy is worse than 1km
+                    errorMsg.textContent = 'Warning: Location is not very accurate. For best results, use a mobile device or click on the map to set your location manually.';
+                } else {
+                    errorMsg.textContent = ''; // Clear message if location is good
+                }
+
+                placeMarker(lat, lng);
+                const address = await reverseGeocode(lat, lng);
+                document.getElementById('reg-location').value = address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                document.getElementById('reg-lat').value = lat;
+                document.getElementById('reg-lng').value = lng;
+            }, (err) => {
+                errorMsg.textContent = `Error: ${err.message}. Your browser might be using an inaccurate IP-based location. Please click on the map to set it manually.`;
+            }, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try { initMap(); } catch (e) { }
+            const btn = document.getElementById('useLocationBtn');
+            if (btn) btn.addEventListener('click', useCurrentLocation);
+
+            // Handle manual address typing
+            const locInput = document.getElementById('reg-location');
+            if (locInput) {
+                locInput.addEventListener('change', async () => {
+                    if (!locInput.value) return;
+                    const coords = await forwardGeocode(locInput.value);
+                    if (coords) {
+                        placeMarker(coords.lat, coords.lng);
+                        document.getElementById('reg-lat').value = coords.lat;
+                        document.getElementById('reg-lng').value = coords.lng;
+                    } else {
+                        alert('Address not found');
+                    }
+                });
+            }
+        });
+
+        // --- Navigation Logic ---
+        const sections = {
+            browse: document.getElementById('section-browse'),
+            sell: document.getElementById('section-sell'),
+            chats: document.getElementById('section-chats'),
+            profile: document.getElementById('section-profile')
+        };
+        const navBtns = {
+            browse: document.getElementById('nav-browse'),
+            sell: document.getElementById('nav-sell'),
+            chats: document.getElementById('nav-chats'),
+            profile: document.getElementById('nav-profile')
+        };
+
+        function switchTab(tabName) {
+            // Hide all sections
+            Object.values(sections).forEach(el => el.classList.add('hidden'));
+            // Remove active class from buttons
+            Object.values(navBtns).forEach(el => el.classList.remove('active'));
+
+            // Show selected
+            sections[tabName].classList.remove('hidden');
+            navBtns[tabName].classList.add('active');
+
+            // Hide dashboard header for Chats view to give more space and focus
+            const dashHeader = document.getElementById('dashboard-header');
+            const dashHr = document.querySelector('#welcome-section > hr');
+            if (tabName === 'chats') {
+                if (dashHeader) dashHeader.classList.add('hidden');
+                if (dashHr) dashHr.classList.add('hidden');
+            } else {
+                if (dashHeader) dashHeader.classList.remove('hidden');
+                if (dashHr) dashHr.classList.remove('hidden');
+            }
+
+            if (tabName === 'browse') loadMarketplace();
+            if (tabName === 'sell') loadMyItems();
+            if (tabName === 'chats') loadChats();
+            if (tabName === 'profile') {
+                setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+            }
+        }
+
+        navBtns.browse.onclick = () => switchTab('browse');
+        navBtns.sell.onclick = () => switchTab('sell');
+        navBtns.chats.onclick = () => switchTab('chats');
+        navBtns.profile.onclick = () => switchTab('profile');
+
+        // Top inbox 'Open' button opens the full chats tab
+        const openFullChatsBtn = document.getElementById('openFullChatsBtn');
+        if (openFullChatsBtn) openFullChatsBtn.addEventListener('click', () => {
+            switchTab('chats');
+        });
+
+        // --- Marketplace Logic ---
+
+        // Modal Logic
+        const buyModal = document.getElementById('buyModal');
+        const closeModal = document.getElementById('closeModal');
+        const step1 = document.getElementById('modal-step-1');
+        const stepLoading = document.getElementById('modal-step-loading');
+        const stepSuccess = document.getElementById('modal-step-success');
+        let currentItemToBuy = null;
+
+        function openBuyModal(item) {
+            currentItemToBuy = item;
+            // Reset views
+            step1.classList.remove('hidden');
+            stepLoading.classList.add('hidden');
+            stepSuccess.classList.add('hidden');
+
+            // Populate data
+            document.getElementById('buy-item-summary').innerHTML = `
+                <img src="${item.image || 'https://via.placeholder.com/150'}" alt="Product">
+                <div>
+                    <div style="font-weight:bold;">${item.title}</div>
+                    <div style="font-size:0.9em; color:#666;">Sold by: ${item.sellerEmail}</div>
+                </div>
+            `;
+            document.getElementById('buy-total-price').textContent = `R ${item.price}`;
+
+            buyModal.classList.add('show');
+        }
+
+        function closeBuyModal() {
+            buyModal.classList.remove('show');
+            currentItemToBuy = null;
+        }
+
+        if (closeModal) closeModal.onclick = closeBuyModal;
+        window.onclick = (event) => { if (event.target == buyModal) closeBuyModal(); };
+
+        // --- Chat Logic ---
+        const chatModal = document.getElementById('chatModal');
+        const closeChatModal = document.getElementById('closeChatModal');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        let currentChatId = null;
+        let chatPollInterval = null;
+
+        function openChat(item) {
+            currentChatId = item.id;
+
+            // Determine who we are talking to (Buyer vs Seller)
+            const isMeSeller = auth.currentUser && auth.currentUser.uid === item.sellerId;
+            const otherPerson = isMeSeller ? (item.buyerEmail || 'Buyer') : (item.sellerEmail || 'Seller');
+
+            document.getElementById('chat-title').textContent = otherPerson;
+            chatModal.classList.add('show');
+            renderChat(item);
+            startChatPolling(item.id);
+            // Mark messages as read by current user when opening the chat
+            try {
+                const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                const idx = allItems.findIndex(i => i.id === item.id);
+                if (idx > -1) {
+                    const msgs = allItems[idx].messages || [];
+                    const uid = auth.currentUser && auth.currentUser.uid;
+                    if (uid) {
+                        let changed = false;
+                        msgs.forEach(m => {
+                            if (!m.readBy) m.readBy = [];
+                            if (!m.readBy.includes(uid)) { m.readBy.push(uid); changed = true; }
+                        });
+                        if (changed) {
+                            allItems[idx].messages = msgs;
+                            localStorage.setItem('demo_items', JSON.stringify(allItems));
+                            // refresh chats/inbox indicators
+                            try { loadChats(); checkNotifications(); } catch (e) { /* ignore */ }
+                        }
+                    }
+                }
+            } catch (e) { console.warn('Failed to mark messages read', e); }
+        }
+
+        function renderChat(item) {
+            const history = document.getElementById('chat-history');
+            history.innerHTML = '<div class="msg-container"></div>';
+            const container = history.querySelector('.msg-container');
+
+            const msgs = item.messages || [];
+            if (msgs.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No messages yet. Discuss delivery details here!</p>';
+            } else {
+                msgs.forEach(m => {
+                    const isMe = m.senderId === auth.currentUser.uid;
+                    const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                    const div = document.createElement('div');
+                    div.className = `msg-row ${isMe ? 'mine' : 'other'}`;
+
+                    div.innerHTML = `
+                        <div class="msg-bubble">
+                            <span class="msg-sender-name">${m.sender}</span>
+                            ${m.text}
+                            <span class="msg-meta">${time} ${isMe ? '<span class="msg-status">✓</span>' : ''}</span>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function startChatPolling(itemId) {
+            if (chatPollInterval) clearInterval(chatPollInterval);
+            chatPollInterval = setInterval(() => {
+                const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                const item = allItems.find(i => i.id === itemId);
+                if (item) {
+                    // Check typing status
+                    const indicator = document.getElementById('typing-indicator');
+                    if (item.typing && item.typing.userId !== auth.currentUser.uid && (Date.now() - item.typing.timestamp < 3000)) {
+                        indicator.textContent = `${item.typing.name || 'Someone'} is typing...`;
+                        indicator.classList.add('show');
+                    } else {
+                        indicator.classList.remove('show');
+                    }
+
+                    // Auto-refresh messages if new ones arrived
+                    const currentCount = document.querySelectorAll('.msg-row').length;
+                    if (item.messages && item.messages.length > currentCount) {
+                        renderChat(item);
+                    }
+                }
+            }, 1000);
+        }
+
+        if (closeChatModal) closeChatModal.onclick = () => {
+            chatModal.classList.remove('show');
+            if (chatPollInterval) clearInterval(chatPollInterval);
+        };
+
+        if (clearChatBtn) {
+            clearChatBtn.addEventListener('click', () => {
+                if (!currentChatId) return;
+                if (!confirm('Are you sure you want to delete all messages in this chat? This cannot be undone.')) return;
+
+                const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                const itemIndex = allItems.findIndex(i => i.id === currentChatId);
+
+                if (itemIndex > -1) {
+                    allItems[itemIndex].messages = [];
+                    localStorage.setItem('demo_items', JSON.stringify(allItems));
+                    renderChat(allItems[itemIndex]);
+                }
+            });
+        }
+
+        // Typing listener
+        document.getElementById('chat-input').addEventListener('input', () => {
+            if (!currentChatId) return;
+            const now = Date.now();
+            if (now - lastTypingTime > 1500) { // Throttle updates
+                lastTypingTime = now;
+                const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                const idx = allItems.findIndex(i => i.id === currentChatId);
+                if (idx > -1) {
+                    allItems[idx].typing = {
+                        userId: auth.currentUser.uid,
+                        name: auth.currentUser.email,
+                        timestamp: now
+                    };
+                    localStorage.setItem('demo_items', JSON.stringify(allItems));
+                }
+            }
+        });
+
+        document.getElementById('chatForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text || !currentChatId) return;
+
+            const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+            const itemIndex = allItems.findIndex(i => i.id === currentChatId);
+
+            if (itemIndex > -1) {
+                if (!allItems[itemIndex].messages) allItems[itemIndex].messages = [];
+                allItems[itemIndex].messages.push({
+                    sender: auth.currentUser.email,
+                    senderId: auth.currentUser.uid,
+                    text: text,
+                    timestamp: new Date().toISOString(),
+                    readBy: [auth.currentUser.uid]
+                });
+                localStorage.setItem('demo_items', JSON.stringify(allItems));
+                input.value = '';
+                renderChat(allItems[itemIndex]);
+                loadChats(); // Force a refresh of the main chats list
+                checkNotifications(); // Update the notification badge
+            }
+        });
+
+        document.getElementById('confirmPurchaseBtn').addEventListener('click', async () => {
+            if (!currentItemToBuy) return;
+
+            // Show loading
+            step1.classList.add('hidden');
+            stepLoading.classList.remove('hidden');
+
+            // Simulate network delay (2 seconds)
+            setTimeout(async () => {
+                try {
+                    // DEMO MODE: Update Local Storage
+                    const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                    const itemIndex = allItems.findIndex(i => i.id === currentItemToBuy.id);
+
+                    if (itemIndex > -1) {
+                        allItems[itemIndex].status = 'pending'; // Set to pending first (Buyer Protection)
+                        allItems[itemIndex].buyerId = auth.currentUser.uid;
+                        allItems[itemIndex].buyerEmail = auth.currentUser.email;
+                        allItems[itemIndex].soldAt = new Date().toISOString();
+
+                        localStorage.setItem('demo_items', JSON.stringify(allItems));
+
+                        // Show success
+                        stepLoading.classList.add('hidden');
+                        stepSuccess.classList.remove('hidden');
+                    } else {
+                        alert('Item no longer available.');
+                        closeBuyModal();
+                        loadMarketplace();
+                    }
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                    closeBuyModal();
+                }
+            }, 2000);
+        });
+
+        document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+            closeBuyModal();
+            loadMarketplace(); // Refresh grid
+        });
+
+        function checkNotifications() {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+            let unreadCount = 0;
+
+            allItems.forEach(item => {
+                const isMine = item.sellerId === user.uid || item.buyerId === user.uid;
+                if (isMine && item.messages && item.messages.length > 0) {
+                    const lastMsg = item.messages[item.messages.length - 1];
+                    // Count as unread only if the last message was sent by the other user
+                    // and the current user has NOT marked it as read.
+                    const sentByOther = lastMsg.senderId !== user.uid;
+                    const readBy = Array.isArray(lastMsg.readBy) ? lastMsg.readBy : [];
+                    if (sentByOther && !readBy.includes(user.uid)) unreadCount++;
+                }
+            });
+
+            const navChats = document.getElementById('nav-chats');
+            if (unreadCount > 0) {
+                navChats.innerHTML = `Chats <span style="background:#dc3545; color:white; padding:2px 6px; border-radius:10px; font-size:0.8em; margin-left:5px;">${unreadCount} New</span>`;
+            } else {
+                navChats.textContent = 'Chats';
+            }
+        }
+
+        async function loadMarketplace() {
+            const grid = document.getElementById('marketplace-grid');
+            grid.innerHTML = 'Loading...';
+            try {
+                // DEMO MODE: Load items from Local Storage instead of Firebase
+                const storedItems = localStorage.getItem('demo_items');
+                let items = storedItems ? JSON.parse(storedItems) : [];
+
+                // Sort by date (newest first)
+                items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                // Check for notifications while we are here
+                checkNotifications();
+
+                grid.innerHTML = '';
+
+                if (items.length === 0) {
+                    grid.innerHTML = '<p>No items found.</p>';
+                    return;
+                }
+
+                items.forEach(item => {
+                    const isSold = item.status === 'sold';
+                    const isPending = item.status === 'pending';
+                    const isMyItem = auth.currentUser && item.sellerId === auth.currentUser.uid;
+                    const isMyPurchase = auth.currentUser && item.buyerId === auth.currentUser.uid;
+
+                    const div = document.createElement('div');
+                    div.className = 'item-card';
+                    div.innerHTML = `
+                        <img src="${item.image || 'https://via.placeholder.com/150'}" alt="${item.title}">
+                        <div>
+                            <h4>${item.title}</h4>
+                            <div class="item-price">R ${item.price}</div>
+                            <p style="font-size:0.9em; color:#666;">${item.description || ''}</p>
+                            ${isSold
+                            ? `<button disabled style="background:#ccc;">Sold to ${item.buyerEmail || 'Someone'}</button>`
+                            : isPending
+                                ? (isMyPurchase ? `<button class="btn-confirm" data-id="${item.id}" style="background:#17a2b8;">Confirm Receipt</button>` : `<button disabled style="background:#ffc107; color:#333;">Pending Delivery</button>`)
+                                : (isMyItem
+                                    ? `<button disabled style="background:#6c757d; cursor:default;">Your Listing</button>`
+                                    : `<button class="btn-buy" data-id="${item.id}">Buy Now</button>`)
+                        }
+                        </div>
+                    `;
+                    grid.appendChild(div);
+                });
+
+                // Attach Buy Event Listeners
+                document.querySelectorAll('.btn-buy').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const itemId = e.target.getAttribute('data-id');
+                        // Find item object from local storage to pass to modal
+                        const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                        const item = allItems.find(i => i.id === itemId);
+                        if (item) openBuyModal(item);
+                    });
+                });
+
+                // Attach Confirm Receipt Listeners (Buyer Protection)
+                document.querySelectorAll('.btn-confirm').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const itemId = e.target.getAttribute('data-id');
+                        if (!confirm("Have you received this item and are satisfied? This will release funds to the seller.")) return;
+
+                        const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                        const itemIndex = allItems.findIndex(i => i.id === itemId);
+                        if (itemIndex > -1) {
+                            allItems[itemIndex].status = 'sold';
+                            localStorage.setItem('demo_items', JSON.stringify(allItems));
+                            alert("Transaction completed! Item marked as Sold.");
+                            loadMarketplace();
+                        }
+                    });
+                });
+
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = '<p>Error loading items.</p>';
+            }
+        }
+
+        // --- Seller Logic ---
+
+        const sellForm = document.getElementById('sellForm');
+        if (sellForm) {
+            sellForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const user = auth.currentUser;
+                if (!user) {
+                    alert('You must be logged in to post an item. Please login or register first.');
+                    return;
+                }
+
+                const title = document.getElementById('prod-title').value;
+                const price = document.getElementById('prod-price').value;
+                const desc = document.getElementById('prod-desc').value;
+                const file = document.getElementById('prod-image').files[0];
+
+                if (!file) {
+                    alert('Please select a product image.');
+                    return;
+                }
+
+                try {
+                    const btn = sellForm.querySelector('button[type="submit"]');
+                    if (btn) { btn.disabled = true; btn.textContent = 'Posting...'; }
+
+                    // DEMO MODE: Save to Local Storage instead of Firebase
+
+                    // Helper to convert image to Base64 string for local storage
+                    const toBase64 = file => new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = error => reject(error);
+                    });
+
+                    const imageUrl = await toBase64(file);
+
+                    const newItem = {
+                        id: 'local_' + Date.now(), // Generate a local ID
+                        title,
+                        price: Number(price),
+                        description: desc,
+                        image: imageUrl,
+                        sellerId: user.uid,
+                        sellerEmail: user.email,
+                        status: 'available',
+                        createdAt: new Date().toISOString()
+                    };
+
+                    // Get existing items, add new one, save back
+                    const currentItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                    currentItems.push(newItem);
+
+                    try {
+                        localStorage.setItem('demo_items', JSON.stringify(currentItems));
+                        alert('Item posted! (Saved locally for demo)');
+                    } catch (storageErr) {
+                        alert('Storage full! The image is too large for the local demo. Try a smaller image.');
+                        throw storageErr;
+                    }
+
+                    sellForm.reset();
+                    // Show the marketplace so the new item is visible, then refresh seller's list
+                    try {
+                        switchTab('browse');
+                        await loadMarketplace();
+                    } catch (e) { console.warn('Failed to refresh marketplace', e); }
+                    loadMyItems(); // Refresh my list
+                } catch (err) {
+                    console.error(err);
+                    alert('Error posting item: ' + err.message);
+                } finally {
+                    const btn = sellForm.querySelector('button[type="submit"]');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Post Item'; }
+                }
+            });
+        }
+
+        async function loadMyItems() {
+            const user = auth.currentUser;
+            if (!user) return;
+            const grid = document.getElementById('my-items-grid');
+            const purchasesGrid = document.getElementById('my-purchases-grid');
+            grid.innerHTML = 'Loading...';
+            purchasesGrid.innerHTML = 'Loading...';
+
+            // DEMO MODE: Filter from Local Storage
+            const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+
+            // Fix for legacy items: Ensure every item has an ID
+            let dataUpdated = false;
+            allItems.forEach((item, idx) => {
+                if (!item.id) {
+                    item.id = `legacy_${Date.now()}_${idx}`;
+                    dataUpdated = true;
+                }
+            });
+            if (dataUpdated) localStorage.setItem('demo_items', JSON.stringify(allItems));
+
+            const myItems = allItems.filter(item => item.sellerId === user.uid);
+            const myPurchases = allItems.filter(item => item.buyerId === user.uid);
+
+            checkNotifications(); // Update nav count
+
+            grid.innerHTML = '';
+            purchasesGrid.innerHTML = '';
+
+            if (myItems.length === 0) {
+                grid.innerHTML = '<p>You haven\'t listed any items yet.</p>';
+            }
+
+            myItems.forEach(item => {
+                const isSold = item.status === 'sold';
+                const isPending = item.status === 'pending';
+                const lastMsg = item.messages && item.messages.length > 0 ? item.messages[item.messages.length - 1] : null;
+                const hasUnread = lastMsg && lastMsg.senderId !== user.uid && !(Array.isArray(lastMsg.readBy) && lastMsg.readBy.includes(user.uid));
+
+                const div = document.createElement('div');
+                div.className = 'item-card';
+                div.style.borderColor = isSold ? '#28a745' : (isPending ? '#ffc107' : '#e6eef8');
+                div.innerHTML = `
+                    <img src="${item.image}" alt="${item.title}">
+                    <div>
+                        <h4>${item.title}</h4>
+                        <div class="item-price">R ${item.price}</div>
+                        <p>Status: <strong>${isSold ? 'SOLD ✅' : (isPending ? 'Pending Delivery 🚚' : 'Active')}</strong></p>
+                        ${(isSold || isPending) ? `<p style="font-size:0.8em; color:${isSold ? 'green' : 'orange'};">Buyer: ${item.buyerEmail}</p>` : ''}
+                        ${(isSold || isPending) ? `<button class="btn-chat" data-id="${item.id}" style="background:#007bff; margin-top:5px; width:100%; position:relative;">💬 Chat with Buyer ${hasUnread ? '<span class="badge-count">!</span>' : ''}</button>` : ''}
+                        <button class="btn-delete" data-id="${item.id}" style="background-color:#dc3545; margin-top:10px;">Delete</button>
+                    </div>
+                `;
+                grid.appendChild(div);
+            });
+
+            if (myPurchases.length === 0) {
+                purchasesGrid.innerHTML = '<p>You haven\'t bought anything yet.</p>';
+            } else {
+                myPurchases.forEach(item => {
+                    const isSold = item.status === 'sold';
+                    const isPending = item.status === 'pending';
+                    const lastMsg = item.messages && item.messages.length > 0 ? item.messages[item.messages.length - 1] : null;
+                    const hasUnread = lastMsg && lastMsg.senderId !== user.uid && !(Array.isArray(lastMsg.readBy) && lastMsg.readBy.includes(user.uid));
+
+                    const div = document.createElement('div');
+                    div.className = 'item-card';
+                    div.style.borderColor = isSold ? '#28a745' : '#ffc107';
+                    div.innerHTML = `
+                        <img src="${item.image}" alt="${item.title}">
+                        <div>
+                            <h4>${item.title}</h4>
+                            <div class="item-price">R ${item.price}</div>
+                            <p>Status: <strong>${isSold ? 'Received ✅' : 'Pending Delivery 🚚'}</strong></p>
+                            <p style="font-size:0.8em; color:#666;">Seller: ${item.sellerEmail}</p>
+                            <button class="btn-chat" data-id="${item.id}" style="background:#007bff; margin-top:5px; width:100%; position:relative;">💬 Chat with Seller ${hasUnread ? '<span class="badge-count">!</span>' : ''}</button>
+                            ${isPending ? `<button class="btn-confirm" data-id="${item.id}" style="background:#17a2b8; margin-top:5px; width:100%;">Confirm Receipt</button>` : ''}
+                        </div>
+                    `;
+                    purchasesGrid.appendChild(div);
+                });
+            }
+
+            // Attach Delete Listeners
+            grid.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const itemId = e.currentTarget.getAttribute('data-id');
+                    if (!itemId) return;
+                    if (!confirm('Are you sure you want to delete this item? This cannot be undone.')) return;
+                    try {
+                        // DEMO MODE: Delete from Local Storage
+                        const currentItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                        const newItems = currentItems.filter(i => String(i.id) !== String(itemId));
+                        localStorage.setItem('demo_items', JSON.stringify(newItems));
+
+                        alert('Item deleted successfully.');
+                        loadMyItems(); // Refresh list
+                    } catch (err) { alert('Error deleting item: ' + err.message); }
+                });
+            });
+
+            // Attach Chat Listeners (for both grids)
+            document.querySelectorAll('.btn-chat').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const itemId = e.target.getAttribute('data-id');
+                    const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                    const item = allItems.find(i => i.id === itemId);
+                    if (item) openChat(item);
+                });
+            });
+
+            // Attach Confirm Listeners (for purchases grid)
+            purchasesGrid.querySelectorAll('.btn-confirm').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const itemId = e.target.getAttribute('data-id');
+                    if (!confirm("Have you received this item and are satisfied?")) return;
+
+                    const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+                    const itemIndex = allItems.findIndex(i => i.id === itemId);
+                    if (itemIndex > -1) {
+                        allItems[itemIndex].status = 'sold';
+                        localStorage.setItem('demo_items', JSON.stringify(allItems));
+                        alert("Transaction completed!");
+                        loadMyItems();
+                    }
+                });
+            });
+        }
+
+        async function loadChats() {
+            const list = document.getElementById('chats-list');
+            if (list) list.innerHTML = 'Loading...';
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const allItems = JSON.parse(localStorage.getItem('demo_items') || '[]');
+
+            // Filter: User is involved AND (has messages OR transaction started)
+            const chats = allItems.filter(item => {
+                const isSeller = item.sellerId === user.uid;
+                const isBuyer = item.buyerId === user.uid;
+                if (!isSeller && !isBuyer) return false;
+
+                const hasMessages = item.messages && item.messages.length > 0;
+                const hasBuyer = !!item.buyerId;
+
+                return hasMessages || (isSeller && hasBuyer) || isBuyer;
+            });
+
+            // Sort by last message time
+            chats.sort((a, b) => {
+                const timeA = (a.messages && a.messages.length) ? new Date(a.messages[a.messages.length - 1].timestamp) : new Date(a.createdAt);
+                const timeB = (b.messages && b.messages.length) ? new Date(b.messages[b.messages.length - 1].timestamp) : new Date(b.createdAt);
+                return timeB - timeA;
+            });
+
+            if (list) list.innerHTML = '';
+            if (chats.length === 0) {
+                if (list) list.innerHTML = '<div style="text-align:center; padding:50px; color:#999;">No active chats.<br>Start a conversation from the marketplace!</div>';
+                return;
+            }
+
+            // build fragment once and clone for inbox/ full list
+            const frag = document.createDocumentFragment();
+            chats.forEach(item => {
+                const isSeller = item.sellerId === user.uid;
+                const otherEmail = isSeller ? (item.buyerEmail || 'Unknown Buyer') : item.sellerEmail;
+                const lastMsg = (item.messages && item.messages.length) ? item.messages[item.messages.length - 1] : null;
+                const unread = lastMsg && lastMsg.senderId !== user.uid && !(Array.isArray(lastMsg.readBy) && lastMsg.readBy.includes(user.uid));
+
+                // Format time
+                let timeString = '';
+                if (lastMsg) {
+                    const d = new Date(lastMsg.timestamp);
+                    timeString = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                } else {
+                    timeString = new Date(item.createdAt).toLocaleDateString();
+                }
+
+                const div = document.createElement('div');
+                div.className = 'chat-list-item';
+                if (unread) div.classList.add('unread');
+
+                div.innerHTML = `
+                    <img src="${item.image || 'https://via.placeholder.com/50'}" alt="Item">
+                    <div class="chat-list-info">
+                        <div class="chat-list-header">
+                            <span class="chat-list-name">${otherEmail}</span>
+                            <span class="chat-list-time">${timeString}</span>
+                        </div>
+                        <div class="chat-list-preview">
+                            <span style="color:#888; font-size:0.9em; margin-right:5px;">${item.title} &bull;</span>
+                            ${lastMsg ? (lastMsg.senderId === user.uid ? 'You: ' : '') + lastMsg.text : '<i>No messages yet</i>'}
+                        </div>
+                    </div>
+                `;
+                div.onclick = () => openChat(item);
+                frag.appendChild(div);
+            });
+            if (list) list.appendChild(frag);
+
+            checkNotifications();
+        }
+
+        // --- Profile Management ---
+
+        function clearProfileForm() {
+            const ids = ['reg-username', 'reg-name', 'reg-phone', 'reg-dob', 'reg-usertype', 'reg-bio', 'reg-social', 'reg-location', 'reg-lat', 'reg-lng'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (el.type === 'checkbox') el.checked = false;
+                else el.value = '';
+            });
+            // clear interest checkboxes
+            document.querySelectorAll('input[name="reg-interests"]').forEach(cb => cb.checked = false);
+            const notifyEmail = document.getElementById('notify-email'); if (notifyEmail) notifyEmail.checked = true;
+            const notifySms = document.getElementById('notify-sms'); if (notifySms) notifySms.checked = false;
+            const img = document.getElementById('photoPreview'); if (img) { img.src = ''; img.classList.add('hidden'); }
+            // remove map marker if present
+            if (marker) { try { map.removeLayer(marker); marker = null; } catch (e) { /* ignore */ } }
+        }
+
+        function clearAuthForms() {
+            try {
+                const regForm = document.getElementById('registerForm');
+                const loginForm = document.getElementById('loginForm');
+                if (regForm) regForm.reset();
+                if (loginForm) loginForm.reset();
+                // Also clear any visible error messages
+                const e = document.getElementById('error-msg'); if (e) e.textContent = '';
+            } catch (e) { console.warn('clearAuthForms failed', e); }
+        }
+
+        async function loadUserProfile(user) {
+            if (!user) return;
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                // Helper to set value if it exists
+                const setValue = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el && value !== undefined && value !== null) {
+                        if (el.type === 'checkbox') el.checked = value;
+                        else el.value = value;
+                    }
+                };
+
+                setValue('reg-username', data.username);
+                setValue('reg-name', data.name);
+                setValue('reg-phone', data.phone);
+                setValue('reg-dob', data.dob);
+                setValue('reg-usertype', data.usertype);
+                setValue('reg-bio', data.bio);
+                // handle interests (array or comma-separated string)
+                const interestsData = data.interests || [];
+                const interestList = Array.isArray(interestsData) ? interestsData : String(interestsData).split(',').map(s => s.trim()).filter(Boolean);
+                document.querySelectorAll('input[name="reg-interests"]').forEach(cb => {
+                    cb.checked = interestList.includes(cb.value);
+                });
+                setValue('reg-social', data.social);
+                setValue('notify-email', data.notifyEmail);
+                setValue('notify-sms', data.notifySms);
+
+                if (data.photoURL) {
+                    const img = document.getElementById('photoPreview');
+                    img.src = data.photoURL;
+                    img.classList.remove('hidden');
+                }
+
+                if (data.location && data.location.lat) {
+                    setValue('reg-location', data.location.address);
+                    setValue('reg-lat', data.location.lat);
+                    setValue('reg-lng', data.location.lng);
+                    if (map) placeMarker(data.location.lat, data.location.lng);
+                }
+            } else {
+                // No profile exists. The form is already clear from onAuthStateChanged.
+                // Guide the new user to the profile section.
+                alert("Welcome! Please complete your profile to continue.");
+                switchTab('profile');
+            }
+        }
+
+        // Handle File Preview (only if photo input exists)
+        const regPhotoEl = document.getElementById('reg-photo');
+        if (regPhotoEl) {
+            regPhotoEl.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const img = document.getElementById('photoPreview');
+                        if (img) {
+                            img.src = ev.target.result;
+                            img.classList.remove('hidden');
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Handle Registration (improved)
+        const registerFormEl = document.getElementById('registerForm');
+        if (registerFormEl) registerFormEl.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            const emailEl = document.getElementById('reg-email');
+            const pwdEl = document.getElementById('reg-password');
+            const email = emailEl ? emailEl.value.trim() : '';
+            const password = pwdEl ? pwdEl.value : '';
+            const btn = e.target.querySelector('button[type="submit"]');
+
+            if (!email || !password) {
+                errorMsg.textContent = 'Please provide both email and password.';
+                return;
+            }
+            if (password.length < 6) {
+                errorMsg.textContent = 'Password must be at least 6 characters.';
+                return;
+            }
+
+            try {
+                if (btn) btn.disabled = true;
+                console.log('Registering', email);
+                await createUserWithEmailAndPassword(auth, email, password);
+                // clear auth inputs after successful registration
+                try { clearAuthForms(); } catch (e) { /* ignore */ }
+                console.log('Registration successful for', email);
+                // onAuthStateChanged will clear and guide the user to complete profile
+            } catch (err) {
+                console.error('Registration error', err);
+                const code = err.code || 'unknown';
+                const msg = err.message || String(err);
+                errorMsg.textContent = `Registration Error (${code}): ${msg}`;
+                alert('Registration failed: ' + msg);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        });
+
+        // Handle Profile Update (Dashboard)
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return alert("You must be logged in.");
+
+            // Validate DOB (must be present and 18+)
+            if (typeof validateDob === 'function') {
+                if (!validateDob()) {
+                    document.getElementById('reg-dob').focus();
+                    return;
+                }
+            }
+
+            // Upload photo if selected
+            let photoURL = null;
+            const fileInput = document.getElementById('reg-photo');
+            if (fileInput.files[0]) {
+                try {
+                    photoURL = await uploadProfilePhoto(fileInput.files[0], user.uid);
+                } catch (err) {
+                    console.error("Photo upload failed:", err);
+                    alert("Failed to upload photo. Saving text data only.");
+                }
+            }
+
+            const data = {
+                username: document.getElementById('reg-username').value,
+                name: document.getElementById('reg-name').value,
+                phone: document.getElementById('reg-phone').value,
+                dob: document.getElementById('reg-dob').value,
+                usertype: document.getElementById('reg-usertype').value,
+                bio: document.getElementById('reg-bio').value,
+                interests: Array.from(document.querySelectorAll('input[name="reg-interests"]:checked')).map(el => el.value),
+                social: document.getElementById('reg-social').value || null,
+                notifyEmail: document.getElementById('notify-email').checked,
+                notifySms: document.getElementById('notify-sms').checked,
+                location: document.getElementById('reg-lat').value ? {
+                    address: document.getElementById('reg-location').value,
+                    lat: Number(document.getElementById('reg-lat').value),
+                    lng: Number(document.getElementById('reg-lng').value)
+                } : null
+            };
+
+            if (photoURL) data.photoURL = photoURL;
+
+            try {
+                await saveUserProfile(user, data);
+                alert("Profile updated successfully!");
+                // After saving profile, take the user to the Browse view and refresh marketplace
+                try { switchTab('browse'); loadMarketplace(); } catch (e) { console.warn('Post-save navigation failed', e); }
+            } catch (err) {
+                alert("Error updating profile: " + err.message);
+            }
+        });
+
+        // Handle Login
+        const loginFormEl = document.getElementById('loginForm');
+        if (loginFormEl) loginFormEl.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const btn = e.target.querySelector('button[type="submit"]');
+            try {
+                if (btn) btn.disabled = true;
+                console.log('Attempting sign in for', email);
+                await signInWithEmailAndPassword(auth, email, password);
+                // clear auth inputs after successful login
+                try { clearAuthForms(); } catch (e) { /* ignore */ }
+                console.log('Sign-in successful for', email);
+            } catch (err) {
+                console.error('Sign-in error', err);
+                // Show detailed error code and message to help debugging
+                const code = err.code || 'unknown';
+                const msg = err.message || String(err);
+                errorMsg.textContent = `Login Error (${code}): ${msg}`;
+                alert('Login failed: ' + msg + '\nCheck the console for details.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        });
+
+        // Handle Forgot Password
+        const forgotFormEl = document.getElementById('forgotForm');
+        if (forgotFormEl) forgotFormEl.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            const email = document.getElementById('forgot-email').value;
+            const btn = e.target.querySelector('button[type="submit"]');
+            try {
+                if (btn) btn.disabled = true;
+                await sendPasswordResetEmail(auth, email);
+                alert('Password reset email sent! Check your inbox.');
+                forgotBox.classList.add('hidden');
+                loginBox.classList.remove('hidden');
+            } catch (err) {
+                console.error('Reset password error', err);
+                errorMsg.textContent = 'Error: ' + err.message;
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        });
+
+        // Handle Google Login (only if button exists)
+        const googleBtnEl = document.getElementById('googleBtn');
+        if (googleBtnEl) googleBtnEl.addEventListener('click', async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+            } catch (err) { if (errorMsg) errorMsg.textContent = 'Google Sign-In Error: ' + (err.message || err); }
+        });
+
+        // Logout and auth state
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        onAuthStateChanged(auth, (user) => {
+            // Always clear form first to prevent data from previous session showing.
+            try { clearProfileForm(); } catch (e) { console.warn("Error clearing profile form:", e); }
+            try { clearAuthForms(); } catch (e) { /* ignore */ }
+
+            if (user) {
+                if (authSection) authSection.classList.add('hidden');
+                if (welcomeSection) welcomeSection.classList.remove('hidden');
+                const emailDisplay = document.getElementById('user-email-display');
+                if (emailDisplay) emailDisplay.textContent = user.email;
+
+                // Load user-specific data
+                try { loadUserProfile(user); } catch (e) { console.warn('loadUserProfile failed', e); }
+                try { loadMarketplace(); } catch (e) { console.warn('loadMarketplace failed', e); }
+                try { loadChats(); } catch (e) { console.warn('loadChats failed', e); }
+            } else {
+                if (welcomeSection) welcomeSection.classList.add('hidden');
+                if (authSection) authSection.classList.remove('hidden');
+                // Form is already cleared at the top of the handler.
+            }
+        });
+
+        // Link password UI handlers
+        document.getElementById('setPasswordBtn').addEventListener('click', async () => {
+            const pwd = document.getElementById('set-password').value;
+            const pwd2 = document.getElementById('set-password-confirm').value;
+            const msg = document.getElementById('linkPwdMsg');
+            msg.textContent = '';
+            if (!pwd || pwd.length < 6) return msg.textContent = 'Password must be at least 6 characters.';
+            if (pwd !== pwd2) return msg.textContent = 'Passwords do not match.';
+            try {
+                const user = auth.currentUser;
+                if (!user) throw new Error('No authenticated user');
+                const credential = EmailAuthProvider.credential(user.email, pwd);
+                await linkWithCredential(user, credential);
+                msg.style.color = 'green';
+                msg.textContent = 'Password linked successfully. You can now sign in with email + password.';
+                setTimeout(() => { document.getElementById('linkPasswordBox').classList.add('hidden'); }, 1200);
+            } catch (err) {
+                msg.style.color = '#dc3545';
+                msg.textContent = 'Linking failed: ' + (err.message || err);
+            }
+        });
+        document.getElementById('cancelSetPasswordBtn').addEventListener('click', () => {
+            document.getElementById('linkPasswordBox').classList.add('hidden');
+        });
+    </script>
+</body>
+
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy & Sell - App</title>
+    <link rel="stylesheet" href="deco.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <style>
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            padding: 25px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            position: relative;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 15px;
+            top: 10px;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .item-summary {
+            text-align: left;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .item-summary img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .success-icon {
+            color: #28a745;
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+
+        /* Chat Styles */
+        .chat-header {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .chat-header .close-modal {
+            color: white;
+            opacity: 0.8;
+        }
+
+        .chat-header .close-modal:hover {
+            opacity: 1;
+        }
+
+        #chat-history {
+            background-color: #e5ddd5;
+        }
+
+        .msg-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 10px;
+        }
+
+        .msg-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+            margin-bottom: 8px;
+        }
+
+        .msg-row.mine {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-row.other {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .msg-bubble {
+            padding: 6px 10px;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            line-height: 19px;
+            color: #111;
+            word-wrap: break-word;
+            min-width: 80px;
+        }
+
+        .msg-row.mine .msg-bubble {
+            background: #007bff;
+            color: white;
+            border-top-right-radius: 0;
+        }
+
+        .msg-row.other .msg-bubble {
+            background: #fff;
+            border-top-left-radius: 0;
+        }
+
+        .msg-meta {
+            font-size: 10px;
+            color: rgba(0, 0, 0, 0.45);
+            text-align: right;
+            margin-top: 2px;
+            display: block;
+        }
+
+        .msg-row.mine .msg-meta {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .msg-status {
+            font-size: 10px;
+            margin-left: 4px;
+        }
+
+        .msg-sender-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #e542a3;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .msg-row.mine .msg-sender-name {
+            display: none;
+        }
+
+        .typing-indicator {
+            font-size: 12px;
+            color: #007bff;
+            padding: 5px 15px;
+            font-style: italic;
+            display: none;
+            background: #f0f0f0;
+        }
+
+        .typing-indicator.show {
+            display: block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
+        }
+
+        .badge-count {
+            background: #dc3545;
+            color: white;
+            font-size: 0.75em;
+            padding: 2px 6px;
+            border-radius: 10px;
+            position: absolute;
+            top: -8px;
+            right: -5px;
+            border: 1px solid white;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Inbox List Styles */
+        .chat-list-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+            background: white;
+        }
+
+        .chat-list-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .chat-list-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+
+        .chat-list-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-list-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .chat-list-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .chat-list-time {
+            font-size: 0.8em;
+            color: #888;
+            white-space: nowrap;
+            margin-left: 10px;
+        }
+
+        .chat-list-preview {
+            color: #666;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-list-item.unread {
+            background-color: #e6f2ff;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Authentication Section (Login/Register) -->
+    <div id="auth-section" class="form-container">
+
+        <!-- Register Form -->
+        <div id="register-box" class="hidden">
+            <h2>Register</h2>
+            <form id="registerForm" data-custom-handle autocomplete="off">
+                <input type="email" id="reg-email" placeholder="Email" required>
+                <input type="password" id="reg-password" placeholder="Password" required>
+                <button type="submit">Sign Up</button>
+            </form>
+            <p>Already have an account? <span class="link" id="showLogin">Login here</span></p>
+        </div>
+
+        <!-- Login Form (Hidden by default) -->
+        <div id="login-box">
+            <h2>Login</h2>
+            <form id="loginForm" data-custom-handle autocomplete="off">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <p style="text-align:right; margin: -10px 0 15px;"><span class="link" id="showForgot"
+                        style="font-size:0.9em;">Forgot Password?</span></p>
+                <button type="submit">Login</button>
+            </form>
+            <p>Don't have an account? <span class="link" id="showRegister">Register here</span></p>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <div id="forgot-box" class="hidden">
+            <h2>Reset Password</h2>
+            <p>Enter your email to receive a reset link.</p>
+            <form id="forgotForm" data-custom-handle autocomplete="off">
+                <input type="email" id="forgot-email" placeholder="Email" required>
+                <button type="submit">Send Reset Link</button>
+            </form>
+            <p><span class="link" id="cancelForgot">Back to Login</span></p>
+        </div>
+
+        <hr>
+        <button id="googleBtn" class="btn-google">Sign in with Google</button>
+
+        <div id="error-msg"></div>
+    </div>
+
+    <!-- Link-password UI for Google users -->
+    <div id="linkPasswordBox" class="form-container hidden"
+        style="position:fixed; right:20px; top:20px; width:320px; z-index:9999;">
+        <h3>Set a password</h3>
+        <p style="font-size:13px;margin:6px 0">To allow email/password login, set a password for your account.</p>
+        <input type="password" id="set-password" placeholder="New password (min 6)" />
+        <input type="password" id="set-password-confirm" placeholder="Confirm password" />
+        <button id="setPasswordBtn" class="btn-primary">Set Password</button>
+        <button id="cancelSetPasswordBtn" class="btn-logout" style="margin-top:8px">Cancel</button>
+        <div id="linkPwdMsg" style="color:#dc3545;margin-top:8px"></div>
+    </div>
+
+    <!-- Welcome Section (Hidden until logged in) -->
+    <div id="welcome-section" class="hidden">
+        <div id="dashboard-header">
+            <h1>Dashboard</h1>
+            <p>You are successfully logged in as: <strong id="user-email-display"></strong></p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-bar">
+            <button id="nav-browse" class="btn-nav active">Browse Items</button>
+            <button id="nav-sell" class="btn-nav">Sell my Items</button>
+            <button id="nav-chats" class="btn-nav">Chats</button>
+            <button id="nav-profile" class="btn-nav">Profile</button>
+            <button id="logoutBtn" class="btn-nav" style="margin-left:auto; color:red;">Logout</button>
+        </div>
+
+        <hr>
+
+        <!-- 1. BROWSE SECTION -->
+        <div id="section-browse">
+            <h3>Explore Items</h3>
+            <div id="marketplace-grid" class="grid-container">
+                <p>Loading items...</p>
+            </div>
+        </div>
+
+        <!-- 2. PROFILE SECTION -->
+        <div id="section-profile" class="hidden">
+            <h3>Profile Settings</h3>
+            <form id="profileForm" data-custom-handle style="margin-top: 20px;">
+                <input type="text" id="reg-username" placeholder="Username (unique)">
+                <input type="text" id="reg-name" placeholder="Full Name">
+                <label>Profile photo</label>
+                <input type="file" id="reg-photo" accept="image/*">
+                <img id="photoPreview" src="" alt="Preview" class="hidden">
+                <input type="tel" id="reg-phone" placeholder="Phone number" />
+                <label for="reg-dob">Date of Birth</label>
+                <input type="date" id="reg-dob" required>
+                <div id="dobError" style="color:#dc3545; font-size:0.9em; margin-top:6px"></div>
+                <label for="reg-usertype">I am a</label>
+                <select id="reg-usertype">
+                    <option value="buyer">Buyer</option>
+                    <option value="seller">Seller</option>
+                </select>
+                <textarea id="reg-bio" placeholder="Short bio / about you"></textarea>
+                <label>Interests (choose one or more)</label>
+                <div id="interests-group">
+                    <label><input type="checkbox" name="reg-interests" value="Electronics"> Electronics</label>
+                    <label><input type="checkbox" name="reg-interests" value="Books"> Books</label>
+                    <label><input type="checkbox" name="reg-interests" value="Clothing"> Clothing</label>
+                    <label><input type="checkbox" name="reg-interests" value="Home"> Home</label>
+                    <label><input type="checkbox" name="reg-interests" value="Sports"> Sports</label>
+                    <label><input type="checkbox" name="reg-interests" value="Vehicles"> Vehicles</label>
+                    <label><input type="checkbox" name="reg-interests" value="Other"> Other</label>
+                </div>
+                <input type="url" id="reg-social" placeholder="Website or social link (optional)">
+                <div>
+                    <label><input type="checkbox" id="notify-email" checked> Email notifications</label>
+                    <label><input type="checkbox" id="notify-sms"> SMS notifications</label>
+                </div>
+                <label for="reg-location">Location (pick on map or use current location)</label>
+                <input type="text" id="reg-location" placeholder="Type address or pick on map" />
+                <div id="map"></div>
+                <button type="button" id="useLocationBtn" class="btn-success">Use current location</button>
+                <input type="hidden" id="reg-lat">
+                <input type="hidden" id="reg-lng">
+                <button type="submit" class="btn-primary" style="margin-top:15px">Save Profile</button>
+            </form>
+        </div>
+
+        <!-- 3. SELL / MY ITEMS SECTION -->
+        <div id="section-sell" class="hidden">
+            <h3>Upload a Product</h3>
+            <form id="sellForm" data-custom-handle
+                style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:20px;">
+                <input type="text" id="prod-title" placeholder="Product Title" required>
+                <input type="number" id="prod-price" placeholder="Price (R)" required>
+                <textarea id="prod-desc" placeholder="Description"></textarea>
+                <label>Product Image</label>
+                <input type="file" id="prod-image" accept="image/*" required>
+                <button type="submit" class="btn-success">Post Item</button>
+            </form>
+
+            <h3>My Listings & Sales</h3>
+            <p>Track your items and see who purchased them.</p>
+            <div id="my-items-grid" class="grid-container">
+                <!-- My items go here -->
+            </div>
+
+            <h3 style="margin-top:30px; border-top:1px solid #eee; padding-top:20px;">My Purchases</h3>
+            <p>Items you have bought. Use the chat to arrange delivery.</p>
+            <div id="my-purchases-grid" class="grid-container"></div>
+        </div>
+
+        <!-- 4. CHATS SECTION -->
+        <div id="section-chats" class="hidden">
+            <div id="chats-list" style="border-top: 1px solid #eee;"></div>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div id="buyModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeModal">&times;</span>
+
+            <!-- Step 1: Confirm -->
+            <div id="modal-step-1">
+                <h2 style="margin-top:0">Confirm Purchase</h2>
+                <div id="buy-item-summary" class="item-summary">
+                    <!-- Populated by JS -->
+                </div>
+                <div style="display:flex; justify-content:space-between; margin: 15px 0; font-size:1.1em;">
+                    <span>Total Amount:</span>
+                    <strong id="buy-total-price"></strong>
+                </div>
+                <div
+                    style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 4px; font-size: 0.85em; text-align: left; margin-bottom: 15px;">
+                    <strong>Payment Notice:</strong><br>
+                    Payments are handled directly between the buyer and the seller. The platform does not process or
+                    store payment information. Buyers and sellers are encouraged to agree on a safe and convenient
+                    payment method such as cash on collection or bank transfer.
+                </div>
+                <button id="confirmPurchaseBtn" class="btn-success"
+                    style="width:100%; padding:12px; font-size:1.1em;">Pay Now</button>
+            </div>
+
+            <!-- Step 2: Loading -->
+            <div id="modal-step-loading" class="hidden">
+                <h3>Processing Payment...</h3>
+                <div class="spinner"></div>
+                <p>Please wait while we secure your item.</p>
+            </div>
+
+            <!-- Step 3: Success -->
+            <div id="modal-step-success" class="hidden">
+                <div class="success-icon">✔</div>
+                <h3>Purchase Successful!</h3>
+                <p>You are now the owner of this item.</p>
+                <button id="closeSuccessBtn" class="btn-primary" style="width:100%; margin-top:15px;">Awesome!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div id="chatModal" class="modal">
+        <div class="modal-content"
+            style="max-width: 500px; height: 80vh; display: flex; flex-direction: column; padding: 0;">
+            <div class="chat-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div
+                        style="width:35px; height:35px; background:#ccc; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold; font-size:18px;">
+                        👤</div>
+                    <h3 id="chat-title">Chat</h3>
+                </div>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <button id="clearChatBtn"
+                        style="background:transparent; border:1px solid rgba(255,255,255,0.7); color:white; border-radius:4px; cursor:pointer; font-size:0.8em; padding:4px 8px;">Clear
+                        Chat</button>
+                    <span class="close-modal" id="closeChatModal" style="position:static; float:none;">&times;</span>
+                </div>
+            </div>
+            <div id="chat-history" style="flex:1; overflow-y:auto; padding:0;"></div>
+            <div id="typing-indicator" class="typing-indicator"></div>
+            <form id="chatForm"
+                style="padding:10px; background:#f0f0f0; display:flex; gap:10px; align-items:center; border-radius: 0 0 12px 12px;">
+                <input type="text" id="chat-input" placeholder="Type a message"
+                    style="flex:1; padding:12px; border:none; border-radius:25px; outline:none;" required>
+                <button type="submit"
+                    style="background:#007bff; color:white; border:none; width:45px; height:45px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px;">➤</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import {
+            auth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            provider,
+            signInWithPopup,
+            saveUserProfile,
+            db,
+            doc,
+            getDoc,
+            uploadProfilePhoto,
+            uploadProductImage,
+            collection,
+            addDoc,
+            getDocs,
+            query, where, orderBy, updateDoc,
+            arrayUnion,
+            deleteDoc,
+            EmailAuthProvider,
+            linkWithCredential,
+            serverTimestamp,
+            sendPasswordResetEmail
+        } from './firebaseauth.js';
+
+        // =================================================================
+        // 1. AUTHENTICATION LOGIC (Login, Register, Forgot Password)
+        // =================================================================
+
+        // UI Elements
+        const authSection = document.getElementById('auth-section');
+        const welcomeSection = document.getElementById('welcome-section');
+        const registerBox = document.getElementById('register-box');
+        const loginBox = document.getElementById('login-box');
+        const forgotBox = document.getElementById('forgot-box');
+        const errorMsg = document.getElementById('error-msg');
+
+        document.getElementById('showLogin').onclick = () => {
+            registerBox.classList.add('hidden');
+            loginBox.classList.remove('hidden');
+            errorMsg.textContent = '';
+            clearAuthForms();
+        };
+        document.getElementById('showRegister').onclick = () => {
+            loginBox.classList.add('hidden');
+            registerBox.classList.remove('hidden');
+            errorMsg.textContent = '';
+            clearAuthForms();
+        };
+        document.getElementById('showForgot').onclick = () => {
+            loginBox.classList.add('hidden');
+            forgotBox.classList.remove('hidden');
+            errorMsg.textContent = '';
+        };
+        document.getElementById('cancelForgot').onclick = () => {
+            forgotBox.classList.add('hidden');
+            loginBox.classList.remove('hidden');
+            errorMsg.textContent = '';
+        };
+
+        // Auth Form Handlers
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            const emailEl = document.getElementById('reg-email');
+            const pwdEl = document.getElementById('reg-password');
+            const email = emailEl ? emailEl.value.trim() : '';
+            const password = pwdEl ? pwdEl.value : '';
+            const btn = e.target.querySelector('button[type="submit"]');
+
+            if (!email || !password) {
+                errorMsg.textContent = 'Please provide both email and password.';
+                return;
+            }
+            if (password.length < 6) {
+                errorMsg.textContent = 'Password must be at least 6 characters.';
+                return;
+            }
+
+            try {
+                if (btn) btn.disabled = true;
+                console.log('Registering', email);
+                await createUserWithEmailAndPassword(auth, email, password);
+                // clear auth inputs after successful registration
+                try { clearAuthForms(); } catch (e) { /* ignore */ }
+                console.log('Registration successful for', email);
+                // onAuthStateChanged will clear and guide the user to complete profile
+            } catch (err) {
+                console.error('Registration error', err);
+                const code = err.code || 'unknown';
+                const msg = err.message || String(err);
+                errorMsg.textContent = `Registration Error (${code}): ${msg}`;
+                alert('Registration failed: ' + msg);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const btn = e.target.querySelector('button[type="submit"]');
+            try {
+                if (btn) btn.disabled = true;
+                console.log('Attempting sign in for', email);
+                await signInWithEmailAndPassword(auth, email, password);
+                // clear auth inputs after successful login
+                try { clearAuthForms(); } catch (e) { /* ignore */ }
+                console.log('Sign-in successful for', email);
+            } catch (err) {
+                console.error('Sign-in error', err);
+                // Show detailed error code and message to help debugging
+                const code = err.code || 'unknown';
+                const msg = err.message || String(err);
+                errorMsg.textContent = `Login Error (${code}): ${msg}`;
+                alert('Login failed: ' + msg + '\nCheck the console for details.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        });
+
+        document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            const email = document.getElementById('forgot-email').value;
+            const btn = e.target.querySelector('button[type="submit"]');
+            try {
+                if (btn) btn.disabled = true;
+                await sendPasswordResetEmail(auth, email);
+                alert('Password reset email sent! Check your inbox.');
+                forgotBox.classList.add('hidden');
+                loginBox.classList.remove('hidden');
+            } catch (err) {
+                console.error('Reset password error', err);
+                errorMsg.textContent = 'Error: ' + err.message;
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        });
+
+        // Handle Google Login (simple save)
+        document.getElementById('googleBtn').addEventListener('click', async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                // Do NOT auto-save profile on Google sign-in. Let the user explicitly edit and press Save Profile.
+                // If you want to prefill the form with displayName, that happens via loadUserProfile after auth state changes.
+            } catch (err) { errorMsg.textContent = 'Google Sign-In Error: ' + (err.message || err); }
+        });
+
+        // Link password UI handlers
+        document.getElementById('setPasswordBtn').addEventListener('click', async () => {
+            const pwd = document.getElementById('set-password').value;
+            const pwd2 = document.getElementById('set-password-confirm').value;
+            const msg = document.getElementById('linkPwdMsg');
+            msg.textContent = '';
+            if (!pwd || pwd.length < 6) return msg.textContent = 'Password must be at least 6 characters.';
+            if (pwd !== pwd2) return msg.textContent = 'Passwords do not match.';
+            try {
+                const user = auth.currentUser;
+                if (!user) throw new Error('No authenticated user');
+                const credential = EmailAuthProvider.credential(user.email, pwd);
+                await linkWithCredential(user, credential);
+                msg.style.color = 'green';
+                msg.textContent = 'Password linked successfully. You can now sign in with email + password.';
+                setTimeout(() => { document.getElementById('linkPasswordBox').classList.add('hidden'); }, 1200);
+            } catch (err) {
+                msg.style.color = '#dc3545';
+                msg.textContent = 'Linking failed: ' + (err.message || err);
+            }
+        });
+        document.getElementById('cancelSetPasswordBtn').addEventListener('click', () => {
+            document.getElementById('linkPasswordBox').classList.add('hidden');
+        });
+
+        function clearAuthForms() {
+            try {
+                const regForm = document.getElementById('registerForm');
+                const loginForm = document.getElementById('loginForm');
+                if (regForm) regForm.reset();
+                if (loginForm) loginForm.reset();
+                // Also clear any visible error messages
+                const e = document.getElementById('error-msg'); if (e) e.textContent = '';
+            } catch (e) { console.warn('clearAuthForms failed', e); }
+        }
+
+        // =================================================================
+        // 2. DASHBOARD LOGIC (Runs after successful login)
+        // =================================================================
+
+        // --- Dashboard UI Elements & State ---
+        const sections = {
+            browse: document.getElementById('section-browse'),
+            sell: document.getElementById('section-sell'),
+            chats: document.getElementById('section-chats'),
+            profile: document.getElementById('section-profile')
+        };
+        const navBtns = {
+            browse: document.getElementById('nav-browse'),
+            sell: document.getElementById('nav-sell'),
+            chats: document.getElementById('nav-chats'),
+            profile: document.getElementById('nav-profile')
+        };
+        const buyModal = document.getElementById('buyModal');
+        const closeModal = document.getElementById('closeModal');
+        const step1 = document.getElementById('modal-step-1');
+        const stepLoading = document.getElementById('modal-step-loading');
+        const stepSuccess = document.getElementById('modal-step-success');
+        const chatModal = document.getElementById('chatModal');
+        const closeChatModal = document.getElementById('closeChatModal');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const dobInput = document.getElementById('reg-dob');
+        const dobError = document.getElementById('dobError');
+
+        let currentItemToBuy = null;
+        let currentChatId = null;
+        let chatPollInterval = null;
+        let lastTypingTime = 0;
+        let map, marker;
+
+        // --- Dashboard Navigation ---
+
+        // Dynamic Date Restriction + 18+ validation
+        function setDobRestriction() {
+            const today = new Date();
+            const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+            dobInput.max = maxDate.toISOString().split('T')[0];
+        }
+
+        function validateDob() {
+            if (!dobInput) return true;
+            dobError.textContent = '';
+            if (!dobInput.value) {
+                dobError.textContent = 'Date of birth is required.';
+                return false;
+            }
+            const dobDate = new Date(dobInput.value);
+            const today = new Date();
+            let age = today.getFullYear() - dobDate.getFullYear();
+            const m = today.getMonth() - dobDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+                age--;
+            }
+            if (age < 18) {
+                dobError.textContent = 'You must be at least 18 years old.';
+                return false;
+            }
+            return true;
+        }
+
+        if (dobInput) {
+            setDobRestriction();
+            dobInput.addEventListener('change', () => validateDob());
+        }
+
+        function switchTab(tabName) {
+            // Hide all sections
+            Object.values(sections).forEach(el => el.classList.add('hidden'));
+            // Remove active class from buttons
+            Object.values(navBtns).forEach(el => el.classList.remove('active'));
+
+            // Show selected
+            sections[tabName].classList.remove('hidden');
+            navBtns[tabName].classList.add('active');
+
+            // Hide dashboard header for Chats view to give more space and focus
+            const dashHeader = document.getElementById('dashboard-header');
+            const dashHr = document.querySelector('#welcome-section > hr');
+            if (tabName === 'chats') {
+                if (dashHeader) dashHeader.classList.add('hidden');
+                if (dashHr) dashHr.classList.add('hidden');
+            } else {
+                if (dashHeader) dashHeader.classList.remove('hidden');
+                if (dashHr) dashHr.classList.remove('hidden');
+            }
+
+            if (tabName === 'browse') loadMarketplace();
+            if (tabName === 'sell') loadMyItems();
+            if (tabName === 'chats') loadChats();
+            if (tabName === 'profile') {
+                setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+            }
+        }
+
+        navBtns.browse.onclick = () => switchTab('browse');
+        navBtns.sell.onclick = () => switchTab('sell');
+        navBtns.chats.onclick = () => switchTab('chats');
+        navBtns.profile.onclick = () => switchTab('profile');
+
+        // Top inbox 'Open' button opens the full chats tab
+        const openFullChatsBtn = document.getElementById('openFullChatsBtn');
+        if (openFullChatsBtn) openFullChatsBtn.addEventListener('click', () => {
+            switchTab('chats');
+        });
+
+        // --- A. Profile Section ---
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return alert("You must be logged in.");
+
+            // Validate DOB (must be present and 18+)
+            if (typeof validateDob === 'function') {
+                if (!validateDob()) {
+                    document.getElementById('reg-dob').focus();
+                    return;
+                }
+            }
+
+            // Upload photo if selected
+            let photoURL = null;
+            const fileInput = document.getElementById('reg-photo');
+            if (fileInput.files[0]) {
+                try {
+                    photoURL = await uploadProfilePhoto(fileInput.files[0], user.uid);
+                } catch (err) {
+                    console.error("Photo upload failed:", err);
+                    alert("Failed to upload photo. Saving text data only.");
+                }
+            }
+
+            const data = {
+                username: document.getElementById('reg-username').value,
+                name: document.getElementById('reg-name').value,
+                phone: document.getElementById('reg-phone').value,
+                dob: document.getElementById('reg-dob').value,
+                usertype: document.getElementById('reg-usertype').value,
+                bio: document.getElementById('reg-bio').value,
+                interests: Array.from(document.querySelectorAll('input[name="reg-interests"]:checked')).map(el => el.value),
+                social: document.getElementById('reg-social').value || null,
+                notifyEmail: document.getElementById('notify-email').checked,
+                notifySms: document.getElementById('notify-sms').checked,
+                location: document.getElementById('reg-lat').value ? {
+                    address: document.getElementById('reg-location').value,
+                    lat: Number(document.getElementById('reg-lat').value),
+                    lng: Number(document.getElementById('reg-lng').value)
+                } : null
+            };
+
+            if (photoURL) data.photoURL = photoURL;
+
+            try {
+                await saveUserProfile(user, data);
+                alert("Profile updated successfully!");
+                // After saving profile, take the user to the Browse view and refresh marketplace
+                try { switchTab('browse'); loadMarketplace(); } catch (e) { console.warn('Post-save navigation failed', e); }
+            } catch (err) {
+                alert("Error updating profile: " + err.message);
+            }
+        });
+
+        // Handle File Preview
+        document.getElementById('reg-photo').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = document.getElementById('photoPreview');
+                    img.src = ev.target.result;
+                    img.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function loadUserProfile(user) {
+            if (!user) return;
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                // Helper to set value if it exists
+                const setValue = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el && value !== undefined && value !== null) {
+                        if (el.type === 'checkbox') el.checked = value;
+                        else el.value = value;
+                    }
+                };
+
+                setValue('reg-username', data.username);
+                setValue('reg-name', data.name);
+                setValue('reg-phone', data.phone);
+                setValue('reg-dob', data.dob);
+                setValue('reg-usertype', data.usertype);
+                setValue('reg-bio', data.bio);
+                // handle interests (array or comma-separated string)
+                const interestsData = data.interests || [];
+                const interestList = Array.isArray(interestsData) ? interestsData : String(interestsData).split(',').map(s => s.trim()).filter(Boolean);
+                document.querySelectorAll('input[name="reg-interests"]').forEach(cb => {
+                    cb.checked = interestList.includes(cb.value);
+                });
+                setValue('reg-social', data.social);
+                setValue('notify-email', data.notifyEmail);
+                setValue('notify-sms', data.notifySms);
+
+                if (data.photoURL) {
+                    const img = document.getElementById('photoPreview');
+                    img.src = data.photoURL;
+                    img.classList.remove('hidden');
+                }
+
+                if (data.location && data.location.lat) {
+                    setValue('reg-location', data.location.address);
+                    setValue('reg-lat', data.location.lat);
+                    setValue('reg-lng', data.location.lng);
+                    if (map) placeMarker(data.location.lat, data.location.lng);
+                }
+            } else {
+                // No profile exists. The form is already clear from onAuthStateChanged.
+                // Guide the new user to the profile section.
+                alert("Welcome! Please complete your profile to continue.");
+                switchTab('profile');
+            }
+        }
+
+        function clearProfileForm() {
+            const ids = ['reg-username', 'reg-name', 'reg-phone', 'reg-dob', 'reg-usertype', 'reg-bio', 'reg-social', 'reg-location', 'reg-lat', 'reg-lng'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (el.type === 'checkbox') el.checked = false;
+                else el.value = '';
+            });
+            // clear interest checkboxes
+            document.querySelectorAll('input[name="reg-interests"]').forEach(cb => cb.checked = false);
+            const notifyEmail = document.getElementById('notify-email'); if (notifyEmail) notifyEmail.checked = true;
+            const notifySms = document.getElementById('notify-sms'); if (notifySms) notifySms.checked = false;
+            const img = document.getElementById('photoPreview'); if (img) { img.src = ''; img.classList.add('hidden'); }
+            // remove map marker if present
+            if (marker) { try { map.removeLayer(marker); marker = null; } catch (e) { /* ignore */ } }
+        }
+
+        // --- B. Map & Location Helpers (for Profile) ---
+        function initMap() {
+            if (map) return;
+            try {
+                map = L.map('map').setView([0, 0], 2);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+                map.on('click', async (e) => {
+                    const { lat, lng } = e.latlng;
+                    placeMarker(lat, lng);
+                    const address = await reverseGeocode(lat, lng);
+                    document.getElementById('reg-location').value = address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    document.getElementById('reg-lat').value = lat;
+                    document.getElementById('reg-lng').value = lng;
+                });
+            } catch (e) { console.warn('Leaflet init failed', e); }
+        }
+        function placeMarker(lat, lng) {
+            if (marker) marker.setLatLng([lat, lng]);
+            else marker = L.marker([lat, lng]).addTo(map);
+            map.setView([lat, lng], 14);
+        }
+        async function reverseGeocode(lat, lng) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return '';
+                const data = await res.json();
+                return data.display_name || '';
+            } catch (e) { console.warn('Reverse geocode failed', e); return ''; }
+        }
+        async function forwardGeocode(address) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(address)}`;
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return null;
+                const data = await res.json();
+                return data.length > 0 ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : null;
+            } catch (e) { console.warn('Forward geocode failed', e); return null; }
+        }
+        function useCurrentLocation() {
+            if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+            errorMsg.textContent = 'Getting your location...'; // Give feedback
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const accuracy = pos.coords.accuracy; // Get the accuracy in meters
+
+                if (accuracy > 1000) { // If accuracy is worse than 1km
+                    errorMsg.textContent = 'Warning: Location is not very accurate. For best results, use a mobile device or click on the map to set your location manually.';
+                } else {
+                    errorMsg.textContent = ''; // Clear message if location is good
+                }
+
+                placeMarker(lat, lng);
+                const address = await reverseGeocode(lat, lng);
+                document.getElementById('reg-location').value = address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                document.getElementById('reg-lat').value = lat;
+                document.getElementById('reg-lng').value = lng;
+            }, (err) => {
+                errorMsg.textContent = `Error: ${err.message}. Your browser might be using an inaccurate IP-based location. Please click on the map to set it manually.`;
+            }, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try { initMap(); } catch (e) { }
+            const btn = document.getElementById('useLocationBtn');
+            if (btn) btn.addEventListener('click', useCurrentLocation);
+
+            // Handle manual address typing
+            const locInput = document.getElementById('reg-location');
+            if (locInput) {
+                locInput.addEventListener('change', async () => {
+                    if (!locInput.value) return;
+                    const coords = await forwardGeocode(locInput.value);
+                    if (coords) {
+                        placeMarker(coords.lat, coords.lng);
+                        document.getElementById('reg-lat').value = coords.lat;
+                        document.getElementById('reg-lng').value = coords.lng;
+                    } else {
+                        alert('Address not found');
+                    }
+                });
+            }
+        });
+
+        // --- C. Marketplace / Browse Section ---
+
+        // Modal Logic
+        function openBuyModal(item) {
+            currentItemToBuy = item;
+            // Reset views
+            step1.classList.remove('hidden');
+            stepLoading.classList.add('hidden');
+            stepSuccess.classList.add('hidden');
+
+            // Populate data
+            document.getElementById('buy-item-summary').innerHTML = `
+                <img src="${item.image || 'https://via.placeholder.com/150'}" alt="Product">
+                <div>
+                    <div style="font-weight:bold;">${item.title}</div>
+                    <div style="font-size:0.9em; color:#666;">Sold by: ${item.sellerEmail}</div>
+                </div>
+            `;
+            document.getElementById('buy-total-price').textContent = `R ${item.price}`;
+
+            buyModal.classList.add('show');
+        }
+
+        function closeBuyModal() {
+            buyModal.classList.remove('show');
+            currentItemToBuy = null;
+        }
+
+        if (closeModal) closeModal.onclick = closeBuyModal;
+        window.onclick = (event) => { if (event.target == buyModal) closeBuyModal(); };
+
+        // --- D. Chat Section ---
+
+        function openChat(item) {
+            currentChatId = item.id;
+            const uid = auth.currentUser && auth.currentUser.uid;
+
+            // Determine who we are talking to (Buyer vs Seller)
+            const isMeSeller = auth.currentUser && auth.currentUser.uid === item.sellerId;
+            const otherPerson = isMeSeller ? (item.buyerEmail || 'Buyer') : (item.sellerEmail || 'Seller');
+
+            document.getElementById('chat-title').textContent = otherPerson;
+            chatModal.classList.add('show');
+
+            // Load item document and messages from Firestore
+            (async () => {
+                try {
+                    const itemDocRef = doc(db, 'items', item.id);
+                    const itemSnap = await getDoc(itemDocRef);
+                    const data = itemSnap.exists() ? Object.assign({ id: itemSnap.id }, itemSnap.data()) : item;
+
+                    // Load messages subcollection (non-realtime for now)
+                    const msgsSnap = await getDocs(query(collection(db, 'items', item.id, 'messages'), orderBy('timestamp', 'asc')));
+                    const msgs = msgsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                    // Mark messages read for current user
+                    if (uid) {
+                        for (const m of msgsSnap.docs) {
+                            const mData = m.data();
+                            const readBy = Array.isArray(mData.readBy) ? mData.readBy : [];
+                            if (!readBy.includes(uid)) {
+                                try { await updateDoc(doc(db, 'items', item.id, 'messages', m.id), { readBy: arrayUnion(uid) }); } catch (e) { /* ignore */ }
+                            }
+                        }
+                        try { await loadChats(); } catch (e) { /* ignore */ }
+                        try { await checkNotifications(); } catch (e) { /* ignore */ }
+                    }
+
+                    renderChat({ ...data, messages: msgs });
+                    startChatPolling(item.id);
+                } catch (e) { console.warn('openChat error', e); renderChat(item); startChatPolling(item.id); }
+            })();
+        }
+
+        function renderChat(item) {
+            const history = document.getElementById('chat-history');
+            history.innerHTML = '<div class="msg-container"></div>';
+            const container = history.querySelector('.msg-container');
+
+            const msgs = item.messages || [];
+            if (msgs.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No messages yet. Discuss delivery details here!</p>';
+            } else {
+                msgs.forEach(m => {
+                    const isMe = m.senderId === auth.currentUser.uid;
+                    const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                    const div = document.createElement('div');
+                    div.className = `msg-row ${isMe ? 'mine' : 'other'}`;
+
+                    div.innerHTML = `
+                        <div class="msg-bubble">
+                            <span class="msg-sender-name">${m.sender}</span>
+                            ${m.text}
+                            <span class="msg-meta">${time} ${isMe ? '<span class="msg-status">✓</span>' : ''}</span>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function startChatPolling(itemId) {
+            if (chatPollInterval) clearInterval(chatPollInterval);
+            chatPollInterval = setInterval(async () => {
+                try {
+                    // Fetch latest typing status from item document
+                    const itemSnap = await getDoc(doc(db, 'items', itemId));
+                    const itemData = itemSnap.exists() ? itemSnap.data() : null;
+                    const indicator = document.getElementById('typing-indicator');
+                    if (itemData && itemData.typing && itemData.typing.userId !== auth.currentUser.uid && (Date.now() - itemData.typing.timestamp < 3000)) {
+                        indicator.textContent = `${itemData.typing.name || 'Someone'} is typing...`;
+                        indicator.classList.add('show');
+                    } else {
+                        indicator.classList.remove('show');
+                    }
+
+                    // Fetch latest messages and re-render if count changed
+                    const msgsSnap = await getDocs(query(collection(db, 'items', itemId, 'messages'), orderBy('timestamp', 'asc')));
+                    const msgs = msgsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    const currentCount = document.querySelectorAll('.msg-row').length;
+                    if (msgs.length !== currentCount) renderChat({ id: itemId, messages: msgs });
+                } catch (e) { console.warn('Polling chat error', e); }
+            }, 1500);
+        }
+
+        if (closeChatModal) closeChatModal.onclick = () => {
+            chatModal.classList.remove('show');
+            if (chatPollInterval) clearInterval(chatPollInterval);
+        };
+
+        if (clearChatBtn) {
+            clearChatBtn.addEventListener('click', () => {
+                if (!currentChatId) return;
+                if (!confirm('Are you sure you want to delete all messages in this chat? This cannot be undone.')) return;
+                (async () => {
+                    try {
+                        const msgsSnap = await getDocs(collection(db, 'items', currentChatId, 'messages'));
+                        for (const m of msgsSnap.docs) {
+                            try { await deleteDoc(doc(db, 'items', currentChatId, 'messages', m.id)); } catch (e) { /* ignore */ }
+                        }
+                        renderChat({ id: currentChatId, messages: [] });
+                    } catch (e) { alert('Failed to clear chat: ' + (e.message || e)); }
+                })();
+            });
+        }
+
+        // Typing listener
+        let lastTypingTime = 0;
+        document.getElementById('chat-input').addEventListener('input', () => {
+            if (!currentChatId) return;
+            const now = Date.now();
+            if (now - lastTypingTime > 1500) { // Throttle updates
+                lastTypingTime = now;
+                (async () => {
+                    try {
+                        await updateDoc(doc(db, 'items', currentChatId), {
+                            typing: {
+                                userId: auth.currentUser.uid,
+                                name: auth.currentUser.email,
+                                timestamp: now
+                            }
+                        });
+                    } catch (e) { /* ignore */ }
+                })();
+            }
+        });
+
+        document.getElementById('chatForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text || !currentChatId) return;
+            (async () => {
+                try {
+                    // Add message to subcollection
+                    const msgRef = await addDoc(collection(db, 'items', currentChatId, 'messages'), {
+                        sender: auth.currentUser.email,
+                        senderId: auth.currentUser.uid,
+                        text: text,
+                        timestamp: serverTimestamp(),
+                        readBy: [auth.currentUser.uid]
+                    });
+
+                    // Update parent item summary fields for quick access
+                    try {
+                        await updateDoc(doc(db, 'items', currentChatId), {
+                            lastMessageText: text,
+                            lastMessageSenderId: auth.currentUser.uid,
+                            lastMessageTimestamp: serverTimestamp()
+                        });
+                    } catch (e) { /* ignore */ }
+
+                    input.value = '';
+                    // Refresh chat and list
+                    const msgsSnap = await getDocs(query(collection(db, 'items', currentChatId, 'messages'), orderBy('timestamp', 'asc')));
+                    const msgs = msgsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    renderChat({ id: currentChatId, messages: msgs });
+                    try { await loadChats(); } catch (e) { /* ignore */ }
+                    try { await checkNotifications(); } catch (e) { /* ignore */ }
+                } catch (err) { console.error('Send message error', err); alert('Failed to send message: ' + (err.message || err)); }
+            })();
+        });
+
+        async function loadChats() {
+            const list = document.getElementById('chats-list');
+            if (list) list.innerHTML = 'Loading...';
+            const user = auth.currentUser;
+            if (!user) return;
+
+            (async () => {
+                try {
+                    // Load items where user is seller or buyer
+                    const sellerSnap = await getDocs(query(collection(db, 'items'), where('sellerId', '==', user.uid)));
+                    const buyerSnap = await getDocs(query(collection(db, 'items'), where('buyerId', '==', user.uid)));
+                    const items = [];
+                    sellerSnap.forEach(d => items.push({ id: d.id, ...d.data() }));
+                    buyerSnap.forEach(d => items.push({ id: d.id, ...d.data() }));
+
+                    // For each item, get latest message (if any)
+                    const chats = [];
+                    for (const it of items) {
+                        let lastMsg = null;
+                        try {
+                            const msgsSnap = await getDocs(query(collection(db, 'items', it.id, 'messages'), orderBy('timestamp', 'desc')));
+                            if (!msgsSnap.empty) lastMsg = msgsSnap.docs[0].data();
+                        } catch (e) { /* ignore per-item */ }
+                        const isSeller = it.sellerId === user.uid;
+                        const isBuyer = it.buyerId === user.uid;
+                        const hasMessages = !!lastMsg;
+                        const hasBuyer = !!it.buyerId;
+                        if (hasMessages || (isSeller && hasBuyer) || isBuyer) {
+                            chats.push({ ...it, lastMsg });
+                        }
+                    }
+
+                    // Sort by last message time or createdAt
+                    chats.sort((a, b) => {
+                        const timeA = a.lastMsg && a.lastMsg.timestamp ? new Date(a.lastMsg.timestamp.toDate ? a.lastMsg.timestamp.toDate() : a.lastMsg.timestamp) : new Date(a.createdAt && a.createdAt.toDate ? a.createdAt.toDate() : a.createdAt);
+                        const timeB = b.lastMsg && b.lastMsg.timestamp ? new Date(b.lastMsg.timestamp.toDate ? b.lastMsg.timestamp.toDate() : b.lastMsg.timestamp) : new Date(b.createdAt && b.createdAt.toDate ? b.createdAt.toDate() : b.createdAt);
+                        return timeB - timeA;
+                    });
+
+                    if (list) list.innerHTML = '';
+                    if (chats.length === 0) {
+                        if (list) list.innerHTML = '<div style="text-align:center; padding:50px; color:#999;">No active chats.<br>Start a conversation from the marketplace!</div>';
+                        return;
+                    }
+
+                    // build fragment once and clone for inbox/ full list
+                    const frag = document.createDocumentFragment();
+                    chats.forEach(item => {
+                        const isSeller = item.sellerId === user.uid;
+                        const otherEmail = isSeller ? (item.buyerEmail || 'Unknown Buyer') : item.sellerEmail;
+                        const lastMsg = item.lastMsg || null;
+                        const unread = lastMsg && lastMsg.senderId !== user.uid && !(Array.isArray(lastMsg.readBy) && lastMsg.readBy.includes(user.uid));
+
+                        // Format time
+                        let timeString = '';
+                        if (lastMsg && lastMsg.timestamp) {
+                            const dval = lastMsg.timestamp.toDate ? lastMsg.timestamp.toDate() : new Date(lastMsg.timestamp);
+                            timeString = dval.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        } else {
+                            const dval = item.createdAt && item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
+                            timeString = dval ? dval.toLocaleDateString() : '';
+                        }
+
+                        const div = document.createElement('div');
+                        div.className = 'chat-list-item';
+                        if (unread) div.classList.add('unread');
+
+                        div.innerHTML = `
+                            <img src="${item.image || 'https://via.placeholder.com/50'}" alt="Item">
+                            <div class="chat-list-info">
+                                <div class="chat-list-header">
+                                    <span class="chat-list-name">${otherEmail}</span>
+                                    <span class="chat-list-time">${timeString}</span>
+                                </div>
+                                <div class="chat-list-preview">
+                                    <span style="color:#888; font-size:0.9em; margin-right:5px;">${item.title} &bull;</span>
+                                    ${lastMsg ? (lastMsg.senderId === user.uid ? 'You: ' : '') + lastMsg.text : '<i>No messages yet</i>'}
+                                </div>
+                            </div>
+                        `;
+                        div.onclick = () => openChat(item);
+                        frag.appendChild(div);
+                    });
+                    if (list) list.appendChild(frag);
+
+                    checkNotifications();
+                } catch (e) { console.warn('loadChats failed', e); if (list) list.innerHTML = '<div style="text-align:center; padding:50px; color:#999;">No active chats.<br>Start a conversation from the marketplace!</div>'; }
+            })();
+        }
+
+        document.getElementById('confirmPurchaseBtn').addEventListener('click', async () => {
+            if (!currentItemToBuy) return;
+
+            // Show loading
+            step1.classList.add('hidden');
+            stepLoading.classList.remove('hidden');
+
+            // Simulate network delay (2 seconds)
+            setTimeout(async () => {
+                try {
+                    // Update Firestore item document
+                    const itemRef = doc(db, 'items', currentItemToBuy.id);
+                    await updateDoc(itemRef, {
+                        status: 'pending',
+                        buyerId: auth.currentUser.uid,
+                        buyerEmail: auth.currentUser.email,
+                        soldAt: serverTimestamp()
+                    });
+                    stepLoading.classList.add('hidden');
+                    stepSuccess.classList.remove('hidden');
+                } catch (err) {
+                    alert('Error: ' + (err.message || err));
+                    closeBuyModal();
+                }
+            }, 2000);
+        });
+
+        document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+            closeBuyModal();
+            loadMarketplace(); // Refresh grid
+        });
+
+        // --- E. Shared Dashboard Logic (Notifications, Loaders) ---
+
+        function checkNotifications() {
+            const user = auth.currentUser;
+            if (!user) return;
+            (async () => {
+                try {
+                    let unreadCount = 0;
+                    const uid = user.uid;
+                    // Query items where user is seller or buyer
+                    const sellerQ = query(collection(db, 'items'), where('sellerId', '==', uid));
+                    const buyerQ = query(collection(db, 'items'), where('buyerId', '==', uid));
+                    const [sellerSnap, buyerSnap] = await Promise.all([getDocs(sellerQ), getDocs(buyerQ)]);
+                    const items = [];
+                    sellerSnap.forEach(d => items.push({ id: d.id, ...d.data() }));
+                    buyerSnap.forEach(d => items.push({ id: d.id, ...d.data() }));
+
+                    // For each item, fetch latest message and check readBy
+                    for (const it of items) {
+                        try {
+                            const msgsSnap = await getDocs(query(collection(db, 'items', it.id, 'messages'), orderBy('timestamp', 'desc')));
+                            if (!msgsSnap.empty) {
+                                const last = msgsSnap.docs[0].data();
+                                const sentByOther = last.senderId !== uid;
+                                const readBy = Array.isArray(last.readBy) ? last.readBy : [];
+                                if (sentByOther && !readBy.includes(uid)) unreadCount++;
+                            }
+                        } catch (e) { /* ignore per-item errors */ }
+                    }
+
+                    const navChats = document.getElementById('nav-chats');
+                    if (navChats) {
+                        if (unreadCount > 0) {
+                            navChats.innerHTML = `Chats <span style="background:#dc3545; color:white; padding:2px 6px; border-radius:10px; font-size:0.8em; margin-left:5px;">${unreadCount} New</span>`;
+                        } else {
+                            navChats.textContent = 'Chats';
+                        }
+                    }
+                } catch (e) { console.warn('checkNotifications failed', e); }
+            })();
+        }
+
+        async function loadMarketplace() {
+            const grid = document.getElementById('marketplace-grid');
+            grid.innerHTML = 'Loading...';
+            try {
+                // Load items from Firestore
+                const itemsSnap = await getDocs(query(collection(db, 'items'), orderBy('createdAt', 'desc')));
+                const items = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                // Check for notifications while we are here
+                try { checkNotifications(); } catch (e) { /* ignore */ }
+
+                grid.innerHTML = '';
+
+                if (!items || items.length === 0) {
+                    grid.innerHTML = '<p>No items found.</p>';
+                    return;
+                }
+
+                items.forEach(item => {
+                    const isSold = item.status === 'sold';
+                    const isPending = item.status === 'pending';
+                    const isMyItem = auth.currentUser && item.sellerId === auth.currentUser.uid;
+                    const isMyPurchase = auth.currentUser && item.buyerId === auth.currentUser.uid;
+
+                    const div = document.createElement('div');
+                    div.className = 'item-card';
+                    div.innerHTML = `
+                        <img src="${item.image || 'https://via.placeholder.com/150'}" alt="${item.title}">
+                        <div>
+                            <h4>${item.title}</h4>
+                            <div class="item-price">R ${item.price}</div>
+                            <p style="font-size:0.9em; color:#666;">${item.description || ''}</p>
+                            ${isSold
+                            ? `<button disabled style="background:#ccc;">Sold</button>`
+                            : isPending
+                                ? (isMyPurchase ? `<button class="btn-confirm" data-id="${item.id}" style="background:#17a2b8;">Confirm Receipt</button>` : `<button disabled style="background:#ffc107; color:#333;">In Negotiation</button>`)
+                                : (isMyItem
+                                    ? `<button disabled style="background:#6c757d; cursor:default;">Your Listing</button>`
+                                    : `<button class="btn-buy" data-id="${item.id}">Buy Now</button>`)
+                        }
+                        </div>
+                    `;
+                    grid.appendChild(div);
+                });
+
+                // Attach Buy Event Listeners
+                document.querySelectorAll('.btn-buy').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const itemId = e.target.getAttribute('data-id');
+                        try {
+                            const itemSnap = await getDoc(doc(db, 'items', itemId));
+                            if (itemSnap.exists()) openBuyModal({ id: itemSnap.id, ...itemSnap.data() });
+                        } catch (e) { console.warn('Failed to load item for modal', e); }
+                    });
+                });
+
+                // Attach Confirm Receipt Listeners (Buyer Protection)
+                document.querySelectorAll('.btn-confirm').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const itemId = e.target.getAttribute('data-id');
+                        if (!confirm("Have you received this item and are satisfied? This will release funds to the seller.")) return;
+                        try {
+                            await updateDoc(doc(db, 'items', itemId), { status: 'sold' });
+                            alert("Transaction completed! Item marked as Sold.");
+                            loadMarketplace();
+                        } catch (err) { alert('Error: ' + (err.message || err)); }
+                    });
+                });
+
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = '<p>Error loading items.</p>';
+            }
+        }
+
+        // --- F. Seller Section (My Listings) ---
+        const sellForm = document.getElementById('sellForm');
+        if (sellForm) {
+            sellForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const user = auth.currentUser;
+                if (!user) {
+                    alert('You must be logged in to post an item. Please login or register first.');
+                    return;
+                }
+
+                const title = document.getElementById('prod-title').value;
+                const price = document.getElementById('prod-price').value;
+                const desc = document.getElementById('prod-desc').value;
+                const file = document.getElementById('prod-image').files[0];
+
+                if (!file) {
+                    alert('Please select a product image.');
+                    return;
+                }
+
+                try {
+                    const btn = sellForm.querySelector('button[type="submit"]');
+                    if (btn) { btn.disabled = true; btn.textContent = 'Posting...'; }
+
+
+                    // Upload image to Firebase Storage and save item to Firestore
+                    let imageUrl = null;
+                    try {
+                        imageUrl = await uploadProductImage(file);
+                    } catch (err) {
+                        throw new Error('Image upload failed: ' + (err.message || err));
+                    }
+
+                    const newItem = {
+                        title,
+                        price: Number(price),
+                        description: desc,
+                        image: imageUrl,
+                        sellerId: user.uid,
+                        sellerEmail: user.email,
+                        status: 'available',
+                        createdAt: serverTimestamp()
+                    };
+
+                    try {
+                        await addDoc(collection(db, 'items'), newItem);
+                        alert('Item posted!');
+                    } catch (storageErr) {
+                        alert('Failed to save item: ' + (storageErr.message || storageErr));
+                        throw storageErr;
+                    }
+
+                    sellForm.reset();
+                    // Show the marketplace so the new item is visible, then refresh seller's list
+                    try {
+                        switchTab('browse');
+                        await loadMarketplace();
+                    } catch (e) { console.warn('Failed to refresh marketplace', e); }
+                    loadMyItems(); // Refresh my list
+                } catch (err) {
+                    console.error(err);
+                    alert('Error posting item: ' + err.message);
+                } finally {
+                    const btn = sellForm.querySelector('button[type="submit"]');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Post Item'; }
+                }
+            });
+        }
+
+        async function loadMyItems() {
+            const user = auth.currentUser;
+            if (!user) return;
+            const grid = document.getElementById('my-items-grid');
+            const purchasesGrid = document.getElementById('my-purchases-grid');
+            grid.innerHTML = 'Loading...';
+            purchasesGrid.innerHTML = 'Loading...';
+
+
+            // Load user's items and purchases from Firestore
+            try {
+                const sellerSnap = await getDocs(query(collection(db, 'items'), where('sellerId', '==', user.uid), orderBy('createdAt', 'desc')));
+                const buyerSnap = await getDocs(query(collection(db, 'items'), where('buyerId', '==', user.uid), orderBy('createdAt', 'desc')));
+                const myItems = sellerSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const myPurchases = buyerSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                try { await checkNotifications(); } catch (e) { /* ignore */ }
+
+                grid.innerHTML = '';
+                purchasesGrid.innerHTML = '';
+
+                if (myItems.length === 0) {
+                    grid.innerHTML = '<p>You haven\'t listed any items yet.</p>';
+                }
+
+                if (myItems.length === 0) {
+                    grid.innerHTML = '<p>You haven\'t listed any items yet.</p>';
+                }
+
+                myItems.forEach(item => {
+                    const isSold = item.status === 'sold';
+                    const isPending = item.status === 'pending';
+                    const lastMsg = item.messages && item.messages.length > 0 ? item.messages[item.messages.length - 1] : null;
+                    const hasUnread = lastMsg && lastMsg.senderId !== user.uid && !(Array.isArray(lastMsg.readBy) && lastMsg.readBy.includes(user.uid));
+
+                    const div = document.createElement('div');
+                    div.className = 'item-card';
+                    div.style.borderColor = isSold ? '#28a745' : (isPending ? '#ffc107' : '#e6eef8');
+                    div.innerHTML = `
+                    <img src="${item.image}" alt="${item.title}">
+                    <div>
+                        <h4>${item.title}</h4>
+                        <div class="item-price">R ${item.price}</div>
+                        <p>Status: <strong>${isSold ? 'SOLD ✅' : (isPending ? 'In Negotiation 🤝' : 'Active')}</strong></p>
+                        ${(isSold || isPending) ? `<p style="font-size:0.8em; color:${isSold ? 'green' : 'orange'};">Buyer: ${item.buyerEmail}</p>` : ''}
+                        ${(isSold || isPending) ? `<button class="btn-chat" data-id="${item.id}" style="background:#007bff; margin-top:5px; width:100%; position:relative;">💬 Chat with Buyer ${hasUnread ? '<span class="badge-count">!</span>' : ''}</button>` : ''}
+                        <div style="display: flex; gap: 5px; margin-top: 10px;">
+                            <button class="btn-delete" data-id="${item.id}" style="background-color:#dc3545; flex:1;">Delete</button>
+                            ${(isSold || isPending) ? `<button class="btn-relist" data-id="${item.id}" style="background-color:#ffc107; color:#212529; flex:1;">Relist</button>` : ''}
+                        </div>
+                    </div>
+                `;
+                    grid.appendChild(div);
+                });
+
+                if (myPurchases.length === 0) {
+                    purchasesGrid.innerHTML = '<p>You haven\'t bought anything yet.</p>';
+                } else {
+                    myPurchases.forEach(item => {
+                        const isSold = item.status === 'sold';
+                        const isPending = item.status === 'pending';
+                        const lastMsg = item.messages && item.messages.length > 0 ? item.messages[item.messages.length - 1] : null;
+                        const hasUnread = lastMsg && lastMsg.senderId !== user.uid && !(Array.isArray(lastMsg.readBy) && lastMsg.readBy.includes(user.uid));
+
+                        const div = document.createElement('div');
+                        div.className = 'item-card';
+                        div.style.borderColor = isSold ? '#28a745' : '#ffc107';
+                        div.innerHTML = `
+                        <img src="${item.image}" alt="${item.title}">
+                        <div>
+                            <h4>${item.title}</h4>
+                            <div class="item-price">R ${item.price}</div>
+                            <p>Status: <strong>${isSold ? 'Received ✅' : 'In Negotiation 🤝'}</strong></p>
+                            <p style="font-size:0.8em; color:#666;">Seller: ${item.sellerEmail}</p>
+                            <button class="btn-chat" data-id="${item.id}" style="background:#007bff; margin-top:5px; width:100%; position:relative;">💬 Chat with Seller ${hasUnread ? '<span class="badge-count">!</span>' : ''}</button>
+                            ${isPending ? `<button class="btn-confirm" data-id="${item.id}" style="background:#17a2b8; margin-top:5px; width:100%;">Confirm Receipt</button>` : ''}
+                        </div>
+                    `;
+                        purchasesGrid.appendChild(div);
+                    });
+                }
+
+                // Attach Delete Listeners
+                grid.querySelectorAll('.btn-delete').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const itemId = e.currentTarget.getAttribute('data-id');
+                        if (!itemId) return;
+                        if (!confirm('Are you sure you want to delete this item? This cannot be undone.')) return;
+                        try {
+                            await deleteDoc(doc(db, 'items', itemId));
+                            alert('Item deleted successfully.');
+                            loadMyItems(); // Refresh list
+                        } catch (err) { alert('Error deleting item: ' + (err.message || err)); }
+                    });
+                });
+
+                // Attach Relist Listeners
+                grid.querySelectorAll('.btn-relist').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const itemId = e.currentTarget.getAttribute('data-id');
+                        if (!itemId) return;
+                        if (!confirm('Are you sure you want to relist this item? This will cancel the current sale, delete the chat history, and make it available for purchase again.')) return;
+                        try {
+                            // Delete chat messages subcollection first
+                            const messagesQuery = query(collection(db, 'items', itemId, 'messages'));
+                            const messagesSnap = await getDocs(messagesQuery);
+                            if (!messagesSnap.empty) {
+                                // Note: Client-side deletion is one-by-one. A Cloud Function is better for large-scale deletes.
+                                for (const msgDoc of messagesSnap.docs) {
+                                    await deleteDoc(doc(db, 'items', itemId, 'messages', msgDoc.id));
+                                }
+                            }
+
+                            // Then, update the item document to reset its state
+                            const itemRef = doc(db, 'items', itemId);
+                            await updateDoc(itemRef, {
+                                status: 'available',
+                                buyerId: null,
+                                buyerEmail: null,
+                                soldAt: null,
+                                lastMessageText: null,
+                                lastMessageSenderId: null,
+                                lastMessageTimestamp: null,
+                                typing: null
+                            });
+                            alert('Item relisted successfully.');
+                            loadMyItems(); // Refresh list
+                        } catch (err) {
+                            console.error('Error relisting item:', err);
+                            alert('Error relisting item: ' + (err.message || err));
+                        }
+                    });
+                });
+
+                // Attach Chat Listeners (for both grids)
+                document.querySelectorAll('.btn-chat').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const itemId = e.target.getAttribute('data-id');
+                        try {
+                            const itemSnap = await getDoc(doc(db, 'items', itemId));
+                            if (itemSnap.exists()) openChat({ id: itemSnap.id, ...itemSnap.data() });
+                        } catch (err) { console.warn('Failed to open chat', err); }
+                    });
+                });
+
+                // Attach Confirm Listeners (for purchases grid)
+                purchasesGrid.querySelectorAll('.btn-confirm').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const itemId = e.target.getAttribute('data-id');
+                        if (!confirm("Have you received this item and are satisfied?")) return;
+                        try {
+                            await updateDoc(doc(db, 'items', itemId), { status: 'sold' });
+                            alert("Transaction completed!");
+                            loadMyItems();
+                        } catch (err) { alert('Error: ' + (err.message || err)); }
+                    });
+                });
+            } catch (err) { console.error('loadMyItems error', err); grid.innerHTML = '<p>Error loading items.</p>'; }
+        }
+
+        async function loadChats() {
+            const list = document.getElementById('chats-list');
+            if (list) list.innerHTML = 'Loading...';
+            const user = auth.currentUser;
+            if (!user) return;
+
+            (async () => {
+                try {
+                    // Load items where user is seller or buyer
+                    const sellerSnap = await getDocs(query(collection(db, 'items'), where('sellerId', '==', user.uid)));
+                    const buyerSnap = await getDocs(query(collection(db, 'items'), where('buyerId', '==', user.uid)));
+                    const items = [];
+                    sellerSnap.forEach(d => items.push({ id: d.id, ...d.data() }));
+                    buyerSnap.forEach(d => items.push({ id: d.id, ...d.data() }));
+
+                    // For each item, get latest message (if any)
+                    const chats = [];
+                    for (const it of items) {
+                        let lastMsg = null;
+                        try {
+                            const msgsSnap = await getDocs(query(collection(db, 'items', it.id, 'messages'), orderBy('timestamp', 'desc')));
+                            if (!msgsSnap.empty) lastMsg = msgsSnap.docs[0].data();
+                        } catch (e) { /* ignore per-item */ }
+                        const isSeller = it.sellerId === user.uid;
+                        const isBuyer = it.buyerId === user.uid;
+                        const hasMessages = !!lastMsg;
+                        const hasBuyer = !!it.buyerId;
+                        if (hasMessages || (isSeller && hasBuyer) || isBuyer) {
+                            chats.push({ ...it, lastMsg });
+                        }
+                    }
+
+                    // Sort by last message time or createdAt
+                    chats.sort((a, b) => {
+                        const timeA = a.lastMsg && a.lastMsg.timestamp ? new Date(a.lastMsg.timestamp.toDate ? a.lastMsg.timestamp.toDate() : a.lastMsg.timestamp) : new Date(a.createdAt && a.createdAt.toDate ? a.createdAt.toDate() : a.createdAt);
+                        const timeB = b.lastMsg && b.lastMsg.timestamp ? new Date(b.lastMsg.timestamp.toDate ? b.lastMsg.timestamp.toDate() : b.lastMsg.timestamp) : new Date(b.createdAt && b.createdAt.toDate ? b.createdAt.toDate() : b.createdAt);
+                        return timeB - timeA;
+                    });
+
+                    if (list) list.innerHTML = '';
+                    if (chats.length === 0) {
+                        if (list) list.innerHTML = '<div style="text-align:center; padding:50px; color:#999;">No active chats.<br>Start a conversation from the marketplace!</div>';
+                        return;
+                    }
+
+                    // build fragment once and clone for inbox/ full list
+                    const frag = document.createDocumentFragment();
+                    chats.forEach(item => {
+                        const isSeller = item.sellerId === user.uid;
+                        const otherEmail = isSeller ? (item.buyerEmail || 'Unknown Buyer') : item.sellerEmail;
+                        const lastMsg = item.lastMsg || null;
+                        const unread = lastMsg && lastMsg.senderId !== user.uid && !(Array.isArray(lastMsg.readBy) && lastMsg.readBy.includes(user.uid));
+
+                        // Format time
+                        let timeString = '';
+                        if (lastMsg && lastMsg.timestamp) {
+                            const dval = lastMsg.timestamp.toDate ? lastMsg.timestamp.toDate() : new Date(lastMsg.timestamp);
+                            timeString = dval.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        } else {
+                            const dval = item.createdAt && item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
+                            timeString = dval ? dval.toLocaleDateString() : '';
+                        }
+
+                        const div = document.createElement('div');
+                        div.className = 'chat-list-item';
+                        if (unread) div.classList.add('unread');
+
+                        div.innerHTML = `
+                            <img src="${item.image || 'https://via.placeholder.com/50'}" alt="Item">
+                            <div class="chat-list-info">
+                                <div class="chat-list-header">
+                                    <span class="chat-list-name">${otherEmail}</span>
+                                    <span class="chat-list-time">${timeString}</span>
+                                </div>
+                                <div class="chat-list-preview">
+                                    <span style="color:#888; font-size:0.9em; margin-right:5px;">${item.title} &bull;</span>
+                                    ${lastMsg ? (lastMsg.senderId === user.uid ? 'You: ' : '') + lastMsg.text : '<i>No messages yet</i>'}
+                                </div>
+                            </div>
+                        `;
+                        div.onclick = () => openChat(item);
+                        frag.appendChild(div);
+                    });
+                    if (list) list.appendChild(frag);
+
+                    checkNotifications();
+                } catch (e) { console.warn('loadChats failed', e); if (list) list.innerHTML = '<div style="text-align:center; padding:50px; color:#999;">No active chats.<br>Start a conversation from the marketplace!</div>'; }
+            })();
+        }
+
+        // --- Profile Management ---
+
+        function clearProfileForm() {
+            const ids = ['reg-username', 'reg-name', 'reg-phone', 'reg-dob', 'reg-usertype', 'reg-bio', 'reg-social', 'reg-location', 'reg-lat', 'reg-lng'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (el.type === 'checkbox') el.checked = false;
+                else el.value = '';
+            });
+            // clear interest checkboxes
+            document.querySelectorAll('input[name="reg-interests"]').forEach(cb => cb.checked = false);
+            const notifyEmail = document.getElementById('notify-email'); if (notifyEmail) notifyEmail.checked = true;
+            const notifySms = document.getElementById('notify-sms'); if (notifySms) notifySms.checked = false;
+            const img = document.getElementById('photoPreview'); if (img) { img.src = ''; img.classList.add('hidden'); }
+            // remove map marker if present
+            if (marker) { try { map.removeLayer(marker); marker = null; } catch (e) { /* ignore */ } }
+        }
+
+        function clearAuthForms() {
+            try {
+                const regForm = document.getElementById('registerForm');
+                const loginForm = document.getElementById('loginForm');
+                if (regForm) regForm.reset();
+                if (loginForm) loginForm.reset();
+                // Also clear any visible error messages
+                const e = document.getElementById('error-msg'); if (e) e.textContent = '';
+            } catch (e) { console.warn('clearAuthForms failed', e); }
+        }
+
+        async function loadUserProfile(user) {
+            if (!user) return;
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                // Helper to set value if it exists
+                const setValue = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el && value !== undefined && value !== null) {
+                        if (el.type === 'checkbox') el.checked = value;
+                        else el.value = value;
+                    }
+                };
+
+                setValue('reg-username', data.username);
+                setValue('reg-name', data.name);
+                setValue('reg-phone', data.phone);
+                setValue('reg-dob', data.dob);
+                setValue('reg-usertype', data.usertype);
+                setValue('reg-bio', data.bio);
+                // handle interests (array or comma-separated string)
+                const interestsData = data.interests || [];
+                const interestList = Array.isArray(interestsData) ? interestsData : String(interestsData).split(',').map(s => s.trim()).filter(Boolean);
+                document.querySelectorAll('input[name="reg-interests"]').forEach(cb => {
+                    cb.checked = interestList.includes(cb.value);
+                });
+                setValue('reg-social', data.social);
+                setValue('notify-email', data.notifyEmail);
+                setValue('notify-sms', data.notifySms);
+
+                if (data.photoURL) {
+                    const img = document.getElementById('photoPreview');
+                    img.src = data.photoURL;
+                    img.classList.remove('hidden');
+                }
+
+                if (data.location && data.location.lat) {
+                    setValue('reg-location', data.location.address);
+                    setValue('reg-lat', data.location.lat);
+                    setValue('reg-lng', data.location.lng);
+                    if (map) placeMarker(data.location.lat, data.location.lng);
+                }
+            } else {
+                // No profile exists. The form is already clear from onAuthStateChanged.
+                // Guide the new user to the profile section.
+                alert("Welcome! Please complete your profile to continue.");
+                switchTab('profile');
+            }
+        }
+
+        // Handle File Preview
+        document.getElementById('reg-photo').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = document.getElementById('photoPreview');
+                    img.src = ev.target.result;
+                    img.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle Registration (improved)
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            const emailEl = document.getElementById('reg-email');
+            const pwdEl = document.getElementById('reg-password');
+            const email = emailEl ? emailEl.value.trim() : '';
+            const password = pwdEl ? pwdEl.value : '';
+            const btn = e.target.querySelector('button[type="submit"]');
+
+            if (!email || !password) {
+                errorMsg.textContent = 'Please provide both email and password.';
+                return;
+            }
+            if (password.length < 6) {
+                errorMsg.textContent = 'Password must be at least 6 characters.';
+                return;
+            }
+
+            try {
+                if (btn) btn.disabled = true;
+                console.log('Registering', email);
+                await createUserWithEmailAndPassword(auth, email, password);
+                // clear auth inputs after successful registration
+                try { clearAuthForms(); } catch (e) { /* ignore */ }
+                console.log('Registration successful for', email);
+                // onAuthStateChanged will clear and guide the user to complete profile
+            } catch (err) {
+                console.error('Registration error', err);
+                const code = err.code || 'unknown';
+                const msg = err.message || String(err);
+                errorMsg.textContent = `Registration Error (${code}): ${msg}`;
+                alert('Registration failed: ' + msg);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        });
+
+        // Handle Profile Update (Dashboard)
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return alert("You must be logged in.");
+
+            // Validate DOB (must be present and 18+)
+            if (typeof validateDob === 'function') {
+                if (!validateDob()) {
+                    document.getElementById('reg-dob').focus();
+                    return;
+                }
+            }
+
+            // Upload photo if selected
+            let photoURL = null;
+            const fileInput = document.getElementById('reg-photo');
+            if (fileInput.files[0]) {
+                try {
+                    photoURL = await uploadProfilePhoto(fileInput.files[0], user.uid);
+                } catch (err) {
+                    console.error("Photo upload failed:", err);
+                    alert("Failed to upload photo. Saving text data only.");
+                }
+            }
+
+            const data = {
+                username: document.getElementById('reg-username').value,
+                name: document.getElementById('reg-name').value,
+                phone: document.getElementById('reg-phone').value,
+                dob: document.getElementById('reg-dob').value,
+                usertype: document.getElementById('reg-usertype').value,
+                bio: document.getElementById('reg-bio').value,
+                interests: Array.from(document.querySelectorAll('input[name="reg-interests"]:checked')).map(el => el.value),
+                social: document.getElementById('reg-social').value || null,
+                notifyEmail: document.getElementById('notify-email').checked,
+                notifySms: document.getElementById('notify-sms').checked,
+                location: document.getElementById('reg-lat').value ? {
+                    address: document.getElementById('reg-location').value,
+                    lat: Number(document.getElementById('reg-lat').value),
+                    lng: Number(document.getElementById('reg-lng').value)
+                } : null
+            };
+
+            if (photoURL) data.photoURL = photoURL;
+
+            try {
+                await saveUserProfile(user, data);
+                alert("Profile updated successfully!");
+                // After saving profile, take the user to the Browse view and refresh marketplace
+                try { switchTab('browse'); loadMarketplace(); } catch (e) { console.warn('Post-save navigation failed', e); }
+            } catch (err) {
+                alert("Error updating profile: " + err.message);
+            }
+        });
+
+        // Handle Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const btn = e.target.querySelector('button[type="submit"]');
+            try {
+                if (btn) btn.disabled = true;
+                console.log('Attempting sign in for', email);
+                await signInWithEmailAndPassword(auth, email, password);
+                // clear auth inputs after successful login
+                try { clearAuthForms(); } catch (e) { /* ignore */ }
+                console.log('Sign-in successful for', email);
+            } catch (err) {
+                console.error('Sign-in error', err);
+                // Show detailed error code and message to help debugging
+                const code = err.code || 'unknown';
+                const msg = err.message || String(err);
+                errorMsg.textContent = `Login Error (${code}): ${msg}`;
+                alert('Login failed: ' + msg + '\nCheck the console for details.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        });
+
+        // Handle Forgot Password
+        document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            const email = document.getElementById('forgot-email').value;
+            const btn = e.target.querySelector('button[type="submit"]');
+            try {
+                if (btn) btn.disabled = true;
+                await sendPasswordResetEmail(auth, email);
+                alert('Password reset email sent! Check your inbox.');
+                forgotBox.classList.add('hidden');
+                loginBox.classList.remove('hidden');
+            } catch (err) {
+                console.error('Reset password error', err);
+                errorMsg.textContent = 'Error: ' + err.message;
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        });
+
+        // Handle Google Login (simple save)
+        document.getElementById('googleBtn').addEventListener('click', async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                // Do NOT auto-save profile on Google sign-in. Let the user explicitly edit and press Save Profile.
+                // If you want to prefill the form with displayName, that happens via loadUserProfile after auth state changes.
+            } catch (err) { errorMsg.textContent = 'Google Sign-In Error: ' + (err.message || err); }
+        });
+
+        // Logout and auth state
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        onAuthStateChanged(auth, (user) => {
+            // Always clear form first to prevent data from previous session showing.
+            try { clearProfileForm(); } catch (e) { console.warn("Error clearing profile form:", e); }
+            try { clearAuthForms(); } catch (e) { /* ignore */ }
+
+            if (user) {
+                authSection.classList.add('hidden');
+                welcomeSection.classList.remove('hidden');
+                document.getElementById('user-email-display').textContent = user.email;
+
+                // Initialize Dashboard and load data
+                loadUserProfile(user);
+                loadMarketplace();
+                try { loadChats(); } catch (e) { console.warn('loadChats failed', e); }
+            } else {
+                welcomeSection.classList.add('hidden');
+                authSection.classList.remove('hidden');
+                // Form is already cleared at the top of the handler.
+            }
+        });
+    </script>
+</body>
+
+</html>
